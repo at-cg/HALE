@@ -1,7 +1,7 @@
 # HALE
 
-HERRO (Haplotype-aware ERRor cOrrection)  is a highly accurate, haplotype-aware, deep-learning tool for error correction of Nanopore R10.4.1, Kit 14 reads (length of ≥ 10000bp is recommended). An experimental model for R9.4.1 data is also provided for download.
-
+HALE (Haplotype-Aware Long read Error correction)  is a haplotype-aware error-correction tool for PacBio Hifi reads and can be used for ONT Simplex reads as well. However the tools performance on ONT data still needs improvement to match its competitors like HERRO which uses Deep-learning approach t solve this problem.
+<!-- 
 ## Requirements
 
 - Linux OS (tested on RHEL 8.6 and Ubuntu 22.04)
@@ -147,4 +147,19 @@ Assembly results and comparison with Hifi reads and uncorrected UL are given in 
 
 ## Acknowledgements
 
-This work has been supported by AI Singapore 100 Experiments (100E) Programme under the project AI-driven De Novo Diploid Assembler (AISG2-100E-2021-076) in collaboration with Agency for Science, Technology and Research (A*STAR), and Oxford Nanopore Technologies plc. (ONT).
+This work has been supported by AI Singapore 100 Experiments (100E) Programme under the project AI-driven De Novo Diploid Assembler (AISG2-100E-2021-076) in collaboration with Agency for Science, Technology and Research (A*STAR), and Oxford Nanopore Technologies plc. (ONT). -->
+
+
+
+<!-- TO do:
+
+  1. Update the readme file.
+  2. Make the code clean by removing unwated things [like generate features in main file]
+  3. Make the code faster by better parallelism
+  4. Update the code to take different running schemes as input like [consenus, original mec, hale] etc.
+  5. 
+
+
+
+
+ -->

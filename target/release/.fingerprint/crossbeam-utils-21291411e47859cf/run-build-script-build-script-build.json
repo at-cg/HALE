@@ -1,1 +1,0 @@
-{"rustc":13207435774680941178,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[13100939403401765317,"build_script_build",false,5514964373055236735]],"local":[{"RerunIfChanged":{"output":"release/build/crossbeam-utils-21291411e47859cf/output","paths":["no_atomic.rs"]}}],"rustflags":["-Ctarget-cpu=native"],"metadata":0,"config":0,"compile_kind":0}
