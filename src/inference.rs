@@ -227,25 +227,6 @@ pub(crate) fn inference_worker(
             Err(_) => break,
         };
 
-        // println!("Data: {:#?}", data);
-
-        // for batch in data.batches {
-        //     let (wids, info_logits, bases_logits) = inference(batch, &model, device);
-        //     wids.into_iter()
-        //         .zip(info_logits.into_iter())
-        //         .zip(bases_logits.into_iter())
-        //         .for_each(|((wid, il), bl)| {
-        //             data.consensus_data[wid as usize]
-        //                 .info_logits
-        //                 .replace(Vec::try_from(il).unwrap());
-
-        //             data.consensus_data[wid as usize]
-        //                 .bases_logits
-        //                 .replace(Vec::try_from(bl).unwrap());
-        //         });
-        // }
-
-
         // mec_modified2(&mut data.consensus_data);
         mec_modified(&mut data.consensus_data);
 
@@ -642,25 +623,40 @@ fn get_bitmask_cost_original(bitmask: u32, bases: &Array2<u8>) -> u32 {
     let mut cost = 0;
 
     for i in 0..m {
-        let mut ones = 0;
-        let mut zeroes = 0;
+        let (mut a0_base, mut t0_base, mut c0_base, mut g0_base, mut d0_base) = (0u32, 0u32, 0u32, 0u32, 0u32);
+        let (mut a1_base, mut t1_base, mut c1_base, mut g1_base, mut d1_base) = (0u32, 0u32, 0u32, 0u32, 0u32);
 
-        for j in 1..n {
-            if (bitmask & (1 << (j - 1))) != 0 {
-                if bases[[j, i]] != BASES_MAP[b'.' as usize] && bases[[0, i]] != BASES_MAP[b'.' as usize] {
-                    if(BASES_UPPER_COUNTER[bases[[j, i]] as usize] == BASES_UPPER_COUNTER[bases[[0, i]] as usize]) {ones += 1;}
-                    else {zeroes += 1;}
+        for j in 0..n {
+            let base = bases[[j, i]];
+            if (bitmask & (1 << j)) != 0 {
+                if base != BASES_MAP[b'.' as usize] {
+                    match base {
+                        x if x == BASES_MAP[b'A' as usize] || x == BASES_MAP[b'a' as usize] => a0_base += 1,
+                        x if x == BASES_MAP[b'T' as usize] || x == BASES_MAP[b't' as usize] => t0_base += 1,
+                        x if x == BASES_MAP[b'C' as usize] || x == BASES_MAP[b'c' as usize] => c0_base += 1,
+                        x if x == BASES_MAP[b'G' as usize] || x == BASES_MAP[b'g' as usize] => g0_base += 1,
+                        x if x == BASES_MAP[b'*' as usize] || x == BASES_MAP[b'#' as usize] => d0_base += 1,
+                        _ => (),
+                    }
+                }
+            } else {
+                if base != BASES_MAP[b'.' as usize] {
+                    match base {
+                        x if x == BASES_MAP[b'A' as usize] || x == BASES_MAP[b'a' as usize] => a1_base += 1,
+                        x if x == BASES_MAP[b'T' as usize] || x == BASES_MAP[b't' as usize] => t1_base += 1,
+                        x if x == BASES_MAP[b'C' as usize] || x == BASES_MAP[b'c' as usize] => c1_base += 1,
+                        x if x == BASES_MAP[b'G' as usize] || x == BASES_MAP[b'g' as usize] => g1_base += 1,
+                        x if x == BASES_MAP[b'*' as usize] || x == BASES_MAP[b'#' as usize] => d1_base += 1,
+                        _ => (),
+                    }
                 }
             }
-            else {
-                if bases[[j, i]] != BASES_MAP[b'.' as usize] && bases[[0, i]] != BASES_MAP[b'.' as usize] {
-                    if(BASES_UPPER_COUNTER[bases[[j, i]] as usize] == BASES_UPPER_COUNTER[bases[[0, i]] as usize]) {zeroes += 1;}
-                    else {ones += 1;}
-                }
-            }
+            let part0_bases = [a0_base, c0_base, g0_base, d0_base, t0_base];
+            cost += part0_bases.iter().sum::<u32>() - *part0_bases.iter().max().unwrap();
+            let part1_bases = [a1_base, c1_base, g1_base, d1_base, t1_base];
+            cost += part1_bases.iter().sum::<u32>() - *part1_bases.iter().max().unwrap();
+            
         }
-        cost += min(ones, zeroes);
-
     }
     cost
 }
@@ -779,7 +775,7 @@ fn naive_modified_mec_original(bases: &Array2<u8>) -> Vec<u8> {
     // println!("bases: {:#?}", bases);
     // println!("size of the matrix: {} {}", n, m);
 
-    let total_bits = (n - 1) as u32;
+    let total_bits = n as u32;
     let mut bitmask = 0;
 
     let mut min_cost = u32::MAX;
@@ -804,7 +800,13 @@ fn naive_modified_mec_original(bases: &Array2<u8>) -> Vec<u8> {
         let mut counts: Vec<u8> = vec![0; 5]; // Assuming 5 possible bases (A, T, C, G, '*')
     
         for j in 0..n {
-            if j == 0 || (corr_mask & (1 << (j - 1))) != 0 {
+            if((corr_mask&1 == 0) && (corr_mask&(1<<j)) == 0) {
+                let base = bases[[j, i]];
+                if base != BASES_MAP[b'.' as usize] {
+                    counts[BASES_UPPER_COUNTER[base as usize]] += 1;
+                }
+            }
+            else if((corr_mask&1 != 0) && (corr_mask&(1<<j)) != 0) {
                 let base = bases[[j, i]];
                 if base != BASES_MAP[b'.' as usize] {
                     counts[BASES_UPPER_COUNTER[base as usize]] += 1;
