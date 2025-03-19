@@ -77,6 +77,7 @@ Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_id
 ```shell
 hale inference --read-alns <directory_alignment_batches> <preprocessed_reads> <fasta_output> 
 ```
+Note: For consensus Add flag ```-C```, ```use hale inference --help``` for more parameters.
 
 
 ## Acknowledgements

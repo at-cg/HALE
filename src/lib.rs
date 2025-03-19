@@ -101,6 +101,7 @@ pub fn generate_features<T, U, V>(
                         &reads,
                         alns,
                         window_size,
+                        false,
                         (&mut tbuf, &mut qbuf),
                         &mut feats_output,
                     );
@@ -125,6 +126,7 @@ pub fn error_correction<T, U, V>(
     // devices: Vec<usize>,
     batch_size: usize,
     aln_mode: AlnMode<V>,
+    consensus: bool,
 ) where
     T: AsRef<Path> + Send + Sync,
     U: AsRef<Path> + Send + Sync,
@@ -209,6 +211,7 @@ pub fn error_correction<T, U, V>(
                         ref_reads,
                         alns,
                         window_size,
+                        consensus,
                         (&mut tbuf, &mut qbuf),
                         &mut feats_output,
                     );
@@ -247,105 +250,105 @@ pub fn error_correction<T, U, V>(
 
 
 
-pub fn error_correction2<T, U, V>(
-    reads_path: T,
-    // model_path: &str,
-    output_path: U,
-    cluster_path: &str,
-    // threads: usize,
-    window_size: u32,
-    // devices: Vec<usize>,
-    batch_size: usize,
-    aln_mode: AlnMode<V>,
-) where
-    T: AsRef<Path> + Send + Sync,
-    U: AsRef<Path> + Send + Sync,
-    V: AsRef<Path> + Send,
-{
-    // tch::set_num_threads(1);
-    let num_threads = 48;
+// pub fn error_correction2<T, U, V>(
+//     reads_path: T,
+//     // model_path: &str,
+//     output_path: U,
+//     cluster_path: &str,
+//     // threads: usize,
+//     window_size: u32,
+//     // devices: Vec<usize>,
+//     batch_size: usize,
+//     aln_mode: AlnMode<V>,
+// ) where
+//     T: AsRef<Path> + Send + Sync,
+//     U: AsRef<Path> + Send + Sync,
+//     V: AsRef<Path> + Send,
+// {
+//     // tch::set_num_threads(1);
+//     let num_threads = 48;
 
-    let (core, neighbour) = read_cluster(&cluster_path);
-    let mut reads = parse_reads(&reads_path, window_size, &core, &neighbour);
-    let max_len = reads.iter().map(|r| r.seq.len()).max().unwrap();
+//     let (core, neighbour) = read_cluster(&cluster_path);
+//     let mut reads = parse_reads(&reads_path, window_size, &core, &neighbour);
+//     let max_len = reads.iter().map(|r| r.seq.len()).max().unwrap();
 
-    // println!("Cluster path {:#?}", cluster_path);
-    // println!("Cluster output1: core {:#?}", core);
-    // println!("Cluster output2: neighbour {:#?}", neighbour);
+//     // println!("Cluster path {:#?}", cluster_path);
+//     // println!("Cluster output1: core {:#?}", core);
+//     // println!("Cluster output2: neighbour {:#?}", neighbour);
 
-    // println!("Reads path and window size {:#?}, {:#?}", &reads_path.as_ref(), window_size);
-    // println!("parse_reads output: core {:#?} \n {:#?} \n {:#?}", &reads.len(), &reads[0], &reads[1]);
-
-
-    let (alns_sender, alns_receiver) = bounded(ALN_CHANNEL_CAPACITY);
-    let (writer_sender, writer_receiver) = unbounded();
-    let (pbar_sender, pbar_receiver) = unbounded();
-    thread::scope(|s| {
-        let pbar_s = pbar_sender.clone();
-        s.spawn(|| {
-            alignment_reader(
-                &reads,
-                &reads_path,
-                &core,
-                aln_mode,
-                num_threads,
-                alns_sender,
-                pbar_s,
-            )
-        });
-        s.spawn(|| correction_writer(&reads, output_path, writer_receiver, pbar_sender));
+//     // println!("Reads path and window size {:#?}, {:#?}", &reads_path.as_ref(), window_size);
+//     // println!("parse_reads output: core {:#?} \n {:#?} \n {:#?}", &reads.len(), &reads[0], &reads[1]);
 
 
-        let (infer_sender, infer_recv) = bounded(INFER_CHANNEL_CAP_FACTOR * num_threads);
-        let (cons_sender, cons_recv) = unbounded();
-        let writer_s = writer_sender.clone();
+//     let (alns_sender, alns_receiver) = bounded(ALN_CHANNEL_CAPACITY);
+//     let (writer_sender, writer_receiver) = unbounded();
+//     let (pbar_sender, pbar_receiver) = unbounded();
+//     thread::scope(|s| {
+//         let pbar_s = pbar_sender.clone();
+//         s.spawn(|| {
+//             alignment_reader(
+//                 &reads,
+//                 &reads_path,
+//                 &core,
+//                 aln_mode,
+//                 num_threads,
+//                 alns_sender,
+//                 pbar_s,
+//             )
+//         });
+//         s.spawn(|| correction_writer(&reads, output_path, writer_receiver, pbar_sender));
 
-        for _ in 0..num_threads {
-            let alns_r = alns_receiver.clone();
-            let infer_s = infer_sender.clone();
 
-            let ref_reads = &reads;
-            s.spawn(move || {
-                // let _guard = tch::no_grad_guard();
+//         let (infer_sender, infer_recv) = bounded(INFER_CHANNEL_CAP_FACTOR * num_threads);
+//         let (cons_sender, cons_recv) = unbounded();
+//         let writer_s = writer_sender.clone();
 
-                let mut feats_output = InferenceOutput::new(infer_s, batch_size);
-                let mut tbuf = vec![0; max_len];
-                let mut qbuf = vec![0; max_len];
+//         for _ in 0..num_threads {
+//             let alns_r = alns_receiver.clone();
+//             let infer_s = infer_sender.clone();
 
-                loop {
-                    let (rid, alns) = match alns_r.recv() {
-                        Ok(out) => out,
-                        Err(_) => break,
-                    };
+//             let ref_reads = &reads;
+//             s.spawn(move || {
+//                 // let _guard = tch::no_grad_guard();
 
-                    extract_features(
-                        rid,
-                        ref_reads,
-                        alns,
-                        window_size,
-                        (&mut tbuf, &mut qbuf),
-                        &mut feats_output,
-                    );
-                }
-            });
-        }
+//                 let mut feats_output = InferenceOutput::new(infer_s, batch_size);
+//                 let mut tbuf = vec![0; max_len];
+//                 let mut qbuf = vec![0; max_len];
 
-        s.spawn(move || {
-            inference_worker(
-                // model_path,
-                // tch::Device::Cuda(device),
-                infer_recv,
-                cons_sender,
-            )
-        });
+//                 loop {
+//                     let (rid, alns) = match alns_r.recv() {
+//                         Ok(out) => out,
+//                         Err(_) => break,
+//                     };
 
-        s.spawn(move || consensus_worker(cons_recv, writer_s));
+//                     extract_features(
+//                         rid,
+//                         ref_reads,
+//                         alns,
+//                         window_size,
+//                         (&mut tbuf, &mut qbuf),
+//                         &mut feats_output,
+//                     );
+//                 }
+//             });
+//         }
 
-        drop(writer_sender);
+//         s.spawn(move || {
+//             inference_worker(
+//                 // model_path,
+//                 // tch::Device::Cuda(device),
+//                 infer_recv,
+//                 cons_sender,
+//             )
+//         });
 
-        track_progress(pbar_receiver);
-    });
-}
+//         s.spawn(move || consensus_worker(cons_recv, writer_s));
+
+//         drop(writer_sender);
+
+//         track_progress(pbar_receiver);
+//     });
+// }
 
 
 

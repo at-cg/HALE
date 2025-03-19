@@ -11,6 +11,7 @@ use ndarray::{s, stack, Array, Array2, ArrayBase, ArrayViewMut1, Axis, Data, Ix2
 use ordered_float::OrderedFloat;
 
 use crate::aligners::{CigarIter, CigarOp};
+use crate::consensus;
 use crate::haec_io::HAECRecord;
 use crate::inference::{prepare_examples, InferenceData, WindowExample};
 // use crate::inference::{InferenceData};
@@ -336,6 +337,7 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
     reads: &'a [HAECRecord],
     overlaps: Vec<Alignment>,
     window_size: u32,
+    consensus: bool,
     (tbuf, qbuf): (&mut [u8], &mut [u8]),
     feats_output: &mut T,
 ) {
@@ -473,7 +475,7 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             })
             .collect();
 
-        let supported = get_supported(&bases);
+        let supported = get_supported(&bases, consensus);
 
         let qids_test: Vec<u32> = windows[i].iter().map(|ow| ow.overlap.qid).collect();
         // println!("qids here: {:#?}", qids);
@@ -590,7 +592,7 @@ fn calculate_accuracy(window: &OverlapWindow, cigar: &[u8], tseq: &[u8], qseq: &
     (m as f32) / ((m + s + i + d) as f32)
 }
 
-fn get_supported<S>(bases: &ArrayBase<S, Ix2>) -> Vec<SupportedPos>
+fn get_supported<S>(bases: &ArrayBase<S, Ix2>, consensus: bool) -> Vec<SupportedPos>
 where
     S: Data<Elem = u8>,
 {
@@ -640,7 +642,7 @@ where
         let n_supported = counter
             .iter()
             .fold(0u8, |acc, (_, &c)| if c >= 3 { acc + 1 } else { acc });
-        if n_supported >= 2 && ins == 0 {
+        if !consensus && n_supported >= 2 && ins == 0 {
             supporeted.push(SupportedPos::new(tpos as u16, ins));
         }
 

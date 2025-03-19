@@ -73,28 +73,28 @@ struct InferenceArgs {
     )]
     window_size: u32,
 
-    #[arg(
-        short = 't',
-        default_value = "1",
-        help = "Number of feature generation threads per device (default 1)"
-    )]
-    feat_gen_threads: usize,
+    // #[arg(
+    //     short = 't',
+    //     default_value = "1",
+    //     help = "Number of feature generation threads per device (default 1)"
+    // )]
+    // feat_gen_threads: usize,
 
     // #[arg(short = 'm', help = "Path to the model file")]
     // model: String,
 
-    #[arg(
-        short = 'd',
-        value_delimiter = ',',
-        default_value = "0",
-        help = "List of cuda devices in format d0,d1... (e.g 0,1,3) (default 0)"
-    )]
-    devices: Vec<usize>,
+    // #[arg(
+    //     short = 'd',
+    //     value_delimiter = ',',
+    //     default_value = "0",
+    //     help = "List of cuda devices in format d0,d1... (e.g 0,1,3) (default 0)"
+    // )]
+    // devices: Vec<usize>,
 
     #[arg(
         short = 'b',
         default_value = "64",
-        help = "Batch size per device. B=64 recommended for 40 GB GPU cards."
+        help = "Batch size per core"
     )]
     batch_size: usize,
 
@@ -104,6 +104,13 @@ struct InferenceArgs {
         help = "Path to a cluster of reads."
     )]
     cluster : String,
+
+    #[arg(
+        short = 'C',
+        default_value_t = false,
+        help = "If user want to just get consensus"
+    )]
+    consensus: bool,
 
     #[arg(help = "Path to the fastq reads (can be gzipped)")]
     reads: String,
@@ -150,6 +157,7 @@ fn main() {
                 // args.devices,
                 args.batch_size,
                 mode,
+                args.consensus,
             );
         }
     }
