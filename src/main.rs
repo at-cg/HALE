@@ -93,6 +93,7 @@ struct InferenceArgs {
 
     #[arg(
         short = 'b',
+        default_value = "64",
         help = "Batch size per device. B=64 recommended for 40 GB GPU cards."
     )]
     batch_size: usize,

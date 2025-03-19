@@ -1,7 +1,7 @@
 # HALE
 
-HALE (Haplotype-Aware Long read Error correction)  is a haplotype-aware error-correction tool for PacBio Hifi reads and can be used for ONT Simplex reads as well. However the tools performance on ONT data still needs improvement to match its competitors like HERRO which uses Deep-learning approach t solve this problem.
-<!-- 
+HALE (Haplotype-Aware Long read Error correction)  is a haplotype-aware error-correction tool for PacBio Hifi reads and can be used for ONT Simplex reads as well. However the tools performance on ONT data still needs improvement to match its competitors like hale which uses Deep-learning approach t solve this problem.
+
 ## Requirements
 
 - Linux OS (tested on RHEL 8.6 and Ubuntu 22.04)
@@ -18,45 +18,27 @@ HALE (Haplotype-Aware Long read Error correction)  is a haplotype-aware error-co
 
 0. Clone the repository
 ```shell
-git clone https://github.com/dominikstanojevic/herro.git
-cd herro
+git clone https://github.com/parveshbarak/HALE.git
+cd HALE
 ```
 
 1. Create conda environment
 ```shell
-conda env create --file scripts/herro-env.yml
+conda env create --file scripts/hale-env.yml
 ```
 
-2. Build ```herro``` binary (singularity or compile from source)
+2. Build ```hale``` binary (ensure that libtorch and rustup are downloaded and installed.)
 
-    a. Download singularity image:
-    
-    1. Download the image
-    ```shell
-    wget -O herro.sif https://zenodo.org/records/13802680/files/herro.sif?download=1
-    ```
-    
+```shell
+export LIBTORCH=<libtorch_path>
+export LD_LIBRARY_PATH=$LIBTORCH/lib:$LD_LIBRARY_PATH
+RUSTFLAGS="-Ctarget-cpu=native" cargo build -q --release
+```
+Path to the resulting binary: ```target/release/hale```
 
-    b. Build singularity image (requires sudo)
-    ```shell
-    sudo singularity build herro.sif herro-singularity.def
-    ```
-    
-    Run the tool (see [Usage](#usage)) with: ```singularity run --nv --bind <host_path>:<dest_path> herro.sif inference <args>```
+Compiling from source takes just a few minutes on a standard machine.
 
-    c. Compile
-    
-    When compiling from source, ensure that libtorch and rustup are downloaded and installed.
-
-    ```shell
-    export LIBTORCH=<libtorch_path>
-    export LD_LIBRARY_PATH=$LIBTORCH/lib:$LD_LIBRARY_PATH
-    RUSTFLAGS="-Ctarget-cpu=native" cargo build -q --release
-    ```
-    Path to the resulting binary: ```target/release/herro```
-
-   Building the Singularity image or compiling from source takes just a few minutes on a standard machine.
-
+<!-- 
 ## Model Download
 
   1. Download model:
@@ -72,6 +54,8 @@ conda env create --file scripts/herro-env.yml
 
 Models can also be found on Zenodo: [https://zenodo.org/records/12683277](https://zenodo.org/records/12683277)
 
+-->
+
 ## Usage
 
 1. Preprocess reads
@@ -82,7 +66,7 @@ Note: Porechop loads all reads into memory, so the input may need to be split in
 
 2. minimap2 alignment and batching
 
-Although minimap2 can be run from the ```herro``` binary (omit --read-alns or use --write-alns to store batched alignments for future use), the preferred method is to initially run minimap2 and then utilize it to generate alignment batches. These batches will be used as input for the ```herro``` binary.
+Although minimap2 can be run from the ```hale``` binary (omit --read-alns or use --write-alns to store batched alignments for future use).
 
 ```shell
 scripts/create_batched_alignments.sh <output_from_reads_preprocessing> <read_ids> <num_of_threads> <directory_for_batches_of_alignments> 
@@ -91,15 +75,21 @@ Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_id
 
 3. Error-correction
 ```shell
-herro inference --read-alns <directory_alignment_batches> -t <feat_gen_threads_per_device> -d <gpus> -m <model_path> -b <batch_size> <preprocessed_reads> <fasta_output> 
+hale inference --read-alns <directory_alignment_batches> <preprocessed_reads> <fasta_output> 
 ```
-Note: GPUs are specified using their IDs. For example, if the value of the parameter -d is set to 0,1,3, herro will use the first, second, and fourth GPU cards. Parameter ```-t``` is given **per device** - e.g., if ```-t``` is set to ```8``` and 3 GPUs are used, herro will create 24 feature generation theads in total. Recommended batch size is 64 for GPUs with 40 GB (possibly also for 32 GB) of VRAM and 128 for GPUs with 80 GB of VRAM. 
 
+
+## Acknowledgements
+
+This work leverages components of the HERRO framework, developed by Stanojevic et al. (2024) (bioRxiv, doi:10.1101/2024.05.18.594796). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, windowing, and post-processing for consensus generation with minimal modifications. We are grateful to the HERRO authors for their valuable contribution to this field.
+
+
+<!-- 
 ## Demo data
 
-Instructions for downloading and running the demo data can be found [here](https://github.com/lbcb-sci/herro/blob/main/demo/README.txt).
+Instructions for downloading and running the demo data can be found [here](https://github.com/lbcb-sci/hale/blob/main/demo/README.txt).
 
-## Citing HERRO
+## Citing hale
 
 > Stanojevic, D., Lin, D., Florez De Sessions, P., & Sikic, M. (2024). Telomere-to-telomere phased genome assembly using error-corrected Simplex nanopore reads. bioRxiv, 2024-05. [doi:10.1101/2024.05.18.594796](https://doi.org/10.1101/2024.05.18.594796)
 
