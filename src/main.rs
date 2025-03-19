@@ -80,8 +80,8 @@ struct InferenceArgs {
     )]
     feat_gen_threads: usize,
 
-    #[arg(short = 'm', help = "Path to the model file")]
-    model: String,
+    // #[arg(short = 'm', help = "Path to the model file")]
+    // model: String,
 
     #[arg(
         short = 'd',

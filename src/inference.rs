@@ -285,8 +285,8 @@ fn mec_modified(data: &mut ConsensusData) -> Option<Vec<u8>> {
         // Note: I have already removed indels from the definition of supported position
         let transposed = informative_bases.t().to_owned();
 
-        // let correction = naive_modified_mec(&transposed);
-        let correction = naive_modified_mec_original(&transposed);
+        let correction = naive_modified_mec(&transposed);
+        // let correction = naive_modified_mec_original(&transposed);
         // println!("size of the matrix before transpose: {} {}", informative_bases.nrows(), informative_bases.ncols());
         // println!("size of the matrix to pass: {} {}", transposed.nrows(), transposed.ncols());
 
