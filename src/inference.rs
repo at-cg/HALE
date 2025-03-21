@@ -267,7 +267,7 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
     let rids_of_interest = vec![61535,61510,2670,22442,22473,42049,2601,2558,61394,22322,22366,2584,61436,22409,22375];
 
     for window in data[wid_st..wid_en].iter_mut() {
-        if window.n_alns < 6 {
+        if window.n_alns < 6 || module == "consensus" {
             window.bases_logits = Some(Vec::new());
             window.info_logits = Some(Vec::new());
             continue;
