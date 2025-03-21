@@ -213,6 +213,7 @@ impl InferenceData {
 pub(crate) fn inference_worker(
     // model_path: P,
     // device: tch::Device,
+    module: &str,
     input_channel: Receiver<InferenceData>,
     output_channel: Sender<ConsensusData>,
 ) {
@@ -228,7 +229,7 @@ pub(crate) fn inference_worker(
         };
 
         // mec_modified2(&mut data.consensus_data);
-        mec_modified(&mut data.consensus_data);
+        mec_modified(&mut data.consensus_data, module);
 
         output_channel.send(data.consensus_data).unwrap();
     }
@@ -243,7 +244,7 @@ fn random_f32_vector(size: usize) -> Vec<f32> {
 
 
 // MEC code here!
-fn mec_modified(data: &mut ConsensusData) -> Option<Vec<u8>> {
+fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
 
     let mut corrected: Vec<u8> = Vec::new();
 
@@ -285,8 +286,15 @@ fn mec_modified(data: &mut ConsensusData) -> Option<Vec<u8>> {
         // Note: I have already removed indels from the definition of supported position
         let transposed = informative_bases.t().to_owned();
 
-        let correction = naive_modified_mec(&transposed);
-        // let correction = naive_modified_mec_original(&transposed);
+        let correction = if module == "hale" {
+            naive_modified_mec(&transposed)
+        } else if module == "binary_mec" {
+            naive_modified_mec_original(&transposed)
+        } else {
+            panic!("Invalid module name: {}", module);
+        };
+        
+        
         // println!("size of the matrix before transpose: {} {}", informative_bases.nrows(), informative_bases.ncols());
         // println!("size of the matrix to pass: {} {}", transposed.nrows(), transposed.ncols());
 
@@ -302,7 +310,8 @@ fn mec_modified(data: &mut ConsensusData) -> Option<Vec<u8>> {
         //     println!("window base logits before :\n {:#?}", window.bases_logits);
         // }
 
-        let corr2 = correction.to_owned();
+        
+        let corr2 = correction.clone(); // Use `.clone()` for a deep copy
         window.bases_logits = Some(correction);
         window.info_logits = Some(random_f32_vector(corr2.len()));
 

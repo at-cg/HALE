@@ -101,7 +101,7 @@ pub fn generate_features<T, U, V>(
                         &reads,
                         alns,
                         window_size,
-                        false,
+                        "hale",
                         (&mut tbuf, &mut qbuf),
                         &mut feats_output,
                     );
@@ -126,7 +126,7 @@ pub fn error_correction<T, U, V>(
     // devices: Vec<usize>,
     batch_size: usize,
     aln_mode: AlnMode<V>,
-    consensus: bool,
+    module: &str,
 ) where
     T: AsRef<Path> + Send + Sync,
     U: AsRef<Path> + Send + Sync,
@@ -211,7 +211,7 @@ pub fn error_correction<T, U, V>(
                         ref_reads,
                         alns,
                         window_size,
-                        consensus,
+                        module,
                         (&mut tbuf, &mut qbuf),
                         &mut feats_output,
                     );
@@ -224,6 +224,7 @@ pub fn error_correction<T, U, V>(
                 inference_worker(
                     // model_path,
                     // tch::Device::Cuda(device),
+                    module,
                     infer_recv_cloned,
                     cons_sender_cloned,
                 )
@@ -241,6 +242,9 @@ pub fn error_correction<T, U, V>(
 
         s.spawn(move || consensus_worker(cons_recv, writer_s));
 
+        // drop(alns_sender);   // Ensure senders are dropped
+        drop(infer_sender);
+        drop(cons_sender);
         drop(writer_sender);
 
         track_progress(pbar_receiver);

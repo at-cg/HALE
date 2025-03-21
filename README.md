@@ -75,9 +75,9 @@ Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_id
 
 3. Error-correction
 ```shell
-hale inference --read-alns <directory_alignment_batches> <preprocessed_reads> <fasta_output> 
+hale inference --read-alns <directory_alignment_batches> -m "hale" <preprocessed_reads> <fasta_output> 
 ```
-Note: For consensus Add flag ```-C```, ```use hale inference --help``` for more parameters.
+Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "binary_mec", "consensus". The default option is "hale".
 
 
 ## Acknowledgements

@@ -106,11 +106,11 @@ struct InferenceArgs {
     cluster : String,
 
     #[arg(
-        short = 'C',
-        default_value_t = false,
+        short = 'm',
+        default_value = "hale",
         help = "If user want to just get consensus"
     )]
-    consensus: bool,
+    module: String,
 
     #[arg(help = "Path to the fastq reads (can be gzipped)")]
     reads: String,
@@ -157,7 +157,7 @@ fn main() {
                 // args.devices,
                 args.batch_size,
                 mode,
-                args.consensus,
+                &args.module,
             );
         }
     }
