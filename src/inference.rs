@@ -274,7 +274,7 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
 
     // println!("Windows and respective informative bases:");
 
-    let rids_of_interest = vec![61535,61510,2670,22442,22473,42049,2601,2558,61394,22322,22366,2584,61436,22409,22375];
+    // let rids_of_interest = vec![61535,61510,2670,22442,22473,42049,2601,2558,61394,22322,22366,2584,61436,22409,22375];
 
     for window in data[wid_st..wid_en].iter_mut() {
         if window.n_alns < 6 || module == "consensus" {
@@ -282,11 +282,11 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
             window.info_logits = Some(Vec::new());
             continue;
         }
-        let n_rows = min(20, window.n_alns) + 1;
+        let n_rows = min(30, window.n_alns) + 1;
 
         let full_bases = window.bases.to_owned();
         let informative_bases_full = filter_bases(&full_bases, &window.supported);
-        let transposed_full = informative_bases_full.t().to_owned();
+        // let transposed_full = informative_bases_full.t().to_owned();
 
         let bases = window.bases.slice(s![.., ..n_rows as usize]).to_owned();
         // I also have to select only the rows that arre supported!
@@ -699,7 +699,10 @@ fn naive_modified_mec(bases: &Array2<u8>) -> Vec<u8> {
     // println!("size of the matrix: {} {}", n, m);
 
     let total_bits = (n - 1) as u32;
-    let set_bits = min(6, total_bits / 3); // max 6 rows, or n/3
+    let mut set_bits = min(7, total_bits / 4);
+    if total_bits < 24{
+        set_bits = min(6, total_bits / 3); // max 6 rows, or n/3
+    } 
     // let set_bits = max(2, total_bits+3 / 5); // max 6 rows, or n/3
     let mut bitmask = (1 << set_bits) - 1; // Smallest bitmask with `set_bits` bits set
 

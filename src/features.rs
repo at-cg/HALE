@@ -620,21 +620,21 @@ where
         }
 
         counter.iter_mut().for_each(|(_, c)| *c = 0);
-        // col.iter().for_each(|&b| {
-        //     if b == b'.' {
-        //         return;
-        //     }
-
-        //     *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
-        // });
-
-        col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
+        col.iter().for_each(|&b| {
             if b == b'.' {
                 return;
             }
 
             *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
         });
+
+        // col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
+        //     if b == b'.' {
+        //         return;
+        //     }
+
+        //     *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
+        // });
         
         // I dont want to consider * for my informative positions!
         counter.insert(b'*', 0);
