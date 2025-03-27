@@ -242,6 +242,16 @@ fn random_f32_vector(size: usize) -> Vec<f32> {
 }
 
 
+fn count_unique_rows(bases: &Array2<u8>) -> usize {
+    let mut unique_rows = HashSet::new();
+
+    for row in bases.rows() {
+        unique_rows.insert(row.to_vec()); // Convert row to Vec<u8> for hashing
+    }
+
+    unique_rows.len()
+}
+
 
 // MEC code here!
 fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
@@ -285,6 +295,14 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
         // get the corrected bases as supported positions and then update those bases as info_logits of that window
         // Note: I have already removed indels from the definition of supported position
         let transposed = informative_bases.t().to_owned();
+
+        // let count = count_unique_rows(&transposed);
+        // let total_rows = transposed.nrows();
+        // let total_cols = transposed.ncols();
+        // if total_cols > 3 {
+        //     println!("Unique rows vs toatl rows: {} {}", count, total_rows);
+        // }
+
 
         let correction = if module == "hale" {
             naive_modified_mec(&transposed)
