@@ -282,15 +282,15 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
             window.info_logits = Some(Vec::new());
             continue;
         }
-        let n_rows = min(30, window.n_alns) + 1;
+        let n_rows = min(20, window.n_alns) + 1;
 
-        let full_bases = window.bases.to_owned();
-        let informative_bases_full = filter_bases(&full_bases, &window.supported);
+        // let full_bases = window.bases.to_owned();
+        // let informative_bases_full = filter_bases(&full_bases, &window.supported);
         // let transposed_full = informative_bases_full.t().to_owned();
 
         let bases = window.bases.slice(s![.., ..n_rows as usize]).to_owned();
         // I also have to select only the rows that arre supported!
-        let informative_bases = filter_bases(&bases, &window.supported);
+        let informative_bases = filter_bases_2(&bases, &window.supported);
         // Now we need to do MEC on this window!
         // get the corrected bases as supported positions and then update those bases as info_logits of that window
         // Note: I have already removed indels from the definition of supported position
@@ -567,6 +567,39 @@ fn filter_bases(bases: &Array2<u8>, supported: &[SupportedPos]) -> Array2<u8> {
     let num_cols = bases.ncols();
     let filtered_bases = Array2::<u8>::from_shape_fn((final_rows.len(), num_cols), |(i, j)| {
         final_rows[i][j]
+    });
+
+    filtered_bases
+}
+
+
+
+fn filter_bases_2(bases: &Array2<u8>, supported: &[SupportedPos]) -> Array2<u8> {
+    // Step 1: Filter rows where bases[row][0] is not 4
+    let filtered_indices: Vec<usize> = bases
+    .axis_iter(Axis(0))  // Iterate over rows
+    .enumerate()          // Get (index, row)
+    .filter(|(_, row)| row[0] != 4) // Keep only rows where row[0] != 4
+    .map(|(idx, _)| idx)  // Extract only the index
+    .collect();
+
+    let supported_map: Vec<(usize, usize)> = supported
+    .iter()
+    .map(|s| (s.pos as usize, s.ins as usize))
+    .collect();
+
+    let mut selected_rows: Vec<Vec<u8>> = Vec::new();
+
+    for &(orig_idx, ins) in &supported_map {
+        if let Some(&filtered_idx) = filtered_indices.get(orig_idx) {
+            let target_idx = filtered_idx + ins; // Ensure `ins` is the correct type (usize or i32)
+            selected_rows.push(bases.row(target_idx).to_vec());
+        }
+    }
+
+    let num_cols = bases.ncols();
+    let filtered_bases = Array2::<u8>::from_shape_fn((selected_rows.len(), num_cols), |(i, j)| {
+        selected_rows[i][j]
     });
 
     filtered_bases

@@ -592,14 +592,11 @@ fn calculate_accuracy(window: &OverlapWindow, cigar: &[u8], tseq: &[u8], qseq: &
     (m as f32) / ((m + s + i + d) as f32)
 }
 
+
 fn get_supported<S>(bases: &ArrayBase<S, Ix2>, module: &str) -> Vec<SupportedPos>
 where
     S: Data<Elem = u8>,
 {
-    // bases -> [R, L]
-
-    // println!("Bases: {:#?}", bases.dim());
-    // println!("new bases: {:#?}", new_bases.dim());
 
     let mut counter: HashMap<u8, u8> = HashMap::default();
     counter.insert(b'A', 0);
@@ -619,30 +616,30 @@ where
             ins = 0;
         }
 
-        counter.iter_mut().for_each(|(_, c)| *c = 0);
-        col.iter().for_each(|&b| {
-            if b == b'.' {
-                return;
-            }
-
-            *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
-        });
-
-        // col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
+        // counter.iter_mut().for_each(|(_, c)| *c = 0);
+        // col.iter().for_each(|&b| {
         //     if b == b'.' {
         //         return;
         //     }
 
         //     *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
         // });
+
+        col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
+            if b == b'.' {
+                return;
+            }
+
+            *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
+        });
         
         // I dont want to consider * for my informative positions!
-        counter.insert(b'*', 0);
+        // counter.insert(b'*', 0);
 
         let n_supported = counter
             .iter()
             .fold(0u8, |acc, (_, &c)| if c >= 3 { acc + 1 } else { acc });
-        if module != "consensus" && n_supported >= 2 && ins == 0 {
+        if module != "consensus" && n_supported >= 2 {
             supporeted.push(SupportedPos::new(tpos as u16, ins));
         }
 
@@ -651,45 +648,10 @@ where
         // }
     }
 
-    /*for l in 1..len + 1 {
-        if l != len && bases[[0, l]] == b'*' {
-            // Gap in target -> do not test
-            continue;
-        }
-
-        let subseq = bases.slice(s![.., start..l]);
-        counter.clear();
-        for read_subseq in subseq.axis_iter(Axis(0)) {
-            let mut hasher = FxHasher::default();
-            let result = read_subseq.iter().try_for_each(|&v| {
-                if v == b'.' {
-                    return Err(()); // No alignment position present
-                } else {
-                    hasher.write_u8(BASE_FORWARD[v as usize]);
-                    return Ok(());
-                }
-            });
-
-            if result.is_ok() {
-                // Check if alignment is really aligned
-                let entry = counter.entry(hasher.finish()).or_insert(0);
-                *entry += 1;
-            }
-        }
-
-        let n_supported = counter
-            .iter()
-            .fold(0u8, |acc, (_, &c)| if c >= 3 { acc + 1 } else { acc });
-        if n_supported >= 2 {
-            supporeted.push(tpos);
-        }
-
-        start = l;
-        tpos += 1;
-    }*/
-
     supporeted
 }
+
+
 
 fn output_features<P: AsRef<Path>>(
     path: P,
