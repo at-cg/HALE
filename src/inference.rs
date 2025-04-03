@@ -274,7 +274,9 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
 
     // println!("Windows and respective informative bases:");
 
-    // let rids_of_interest = vec![61535,61510,2670,22442,22473,42049,2601,2558,61394,22322,22366,2584,61436,22409,22375];
+    // let rids_of_interest = vec![ 352392, 41134, 144192, 144197, 144181, 144232, 144184, 247209, 247213,247166, 244047, 350192, 350120, 350194];
+    // let rids_of_interest = vec![ 352392, 350120, 350194];
+
 
     for window in data[wid_st..wid_en].iter_mut() {
         if window.n_alns < 6 || module == "consensus" {
@@ -324,9 +326,11 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
         // if(window.rid == 251){ println!("window before :\n {:#?}", window); }
 
         // if rids_of_interest.contains(&window.rid) {
-        //     println!("rid: {:#?} \n full inf matrix: \n {:#?} \n 20 rows used for MEC : \n {:#?}", window.rid, transposed_full, transposed);
+        //     println!("rid: {:#?} \n 20 rows used for MEC : \n {:#?}", window.rid, transposed);
         //     println!("window base logits before :\n {:#?}", window.bases_logits);
         // }
+
+        // println!("rid: {:#?} \n MEC Mtarix rows x cols: {:#?} x  {:#?}", window.rid, transposed.nrows(), transposed.ncols());
 
         
         let corr2 = correction.clone(); // Use `.clone()` for a deep copy

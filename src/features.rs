@@ -400,6 +400,10 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
     //let output_path = Path::new("features").join(&read.id);
     //create_dir_all(&output_path).expect("Cannot create directory");
 
+    // let result: String = read.id.iter().map(|&c| c as u8 as char).collect();
+
+    // println!("{:#?},{:#?}", result ,rid);
+
     feats_output.init(rid, &read.id);
     for i in 0..n_windows {
         /*if windows[i].len() == 0 {
@@ -445,6 +449,10 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             }
 
             let acc = calculate_accuracy(ow, cigar, &tbuf[tstart..tend], &qbuf[..qlen]);
+            if rid == 352392{
+                println!("{},{},{},{}",rid, qid, acc, i);
+            }
+            // println!("{}", rid);
             OrderedFloat(-acc)
         });
 
@@ -476,6 +484,7 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             .collect();
 
         let supported = get_supported(&bases, module);
+
 
         let qids_test: Vec<u32> = windows[i].iter().map(|ow| ow.overlap.qid).collect();
         // println!("qids here: {:#?}", qids);
@@ -616,7 +625,7 @@ where
             ins = 0;
         }
 
-        // counter.iter_mut().for_each(|(_, c)| *c = 0);
+        counter.iter_mut().for_each(|(_, c)| *c = 0);
         // col.iter().for_each(|&b| {
         //     if b == b'.' {
         //         return;
