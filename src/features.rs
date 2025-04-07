@@ -449,9 +449,9 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             }
 
             let acc = calculate_accuracy(ow, cigar, &tbuf[tstart..tend], &qbuf[..qlen]);
-            if rid == 352392{
-                println!("{},{},{},{}",rid, qid, acc, i);
-            }
+            // if rid == 352392{
+            //     println!("{},{},{},{}",rid, qid, acc, i);
+            // }
             // println!("{}", rid);
             OrderedFloat(-acc)
         });
@@ -483,7 +483,9 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             })
             .collect();
 
+        // let supported = get_supported_without_hp(&bases, module);
         let supported = get_supported(&bases, module);
+
 
 
         let qids_test: Vec<u32> = windows[i].iter().map(|ow| ow.overlap.qid).collect();
@@ -659,6 +661,75 @@ where
 
     supporeted
 }
+
+
+
+
+fn get_supported_without_hp<S>(bases: &ArrayBase<S, Ix2>, module: &str) -> Vec<SupportedPos>
+where
+    S: Data<Elem = u8>,
+{
+
+    let mut counter: HashMap<u8, u8> = HashMap::default();
+    counter.insert(b'A', 0);
+    counter.insert(b'C', 0);
+    counter.insert(b'G', 0);
+    counter.insert(b'T', 0);
+    counter.insert(b'*', 0);
+
+    let mut supporeted = Vec::new();
+
+    let (mut tpos, mut ins) = (-1i16, 0);
+
+    let mut prev_base: Option<u8> = None; // Store the base of the previous column
+    for (col_idx, col) in bases.axis_iter(Axis(0)).enumerate() {
+        if col[0] == b'*' {
+            ins += 1;
+        } else {
+            tpos += 1;
+            ins = 0;
+        }
+
+        counter.iter_mut().for_each(|(_, c)| *c = 0);
+
+        col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
+            if b == b'.' {
+                return;
+            }
+
+            *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
+        });
+
+        let current_base = col[0]; // The current column's base
+        let next_base = if col_idx + 1 < bases.shape()[0] {
+            Some(bases.index_axis(Axis(0), col_idx + 1)[0])
+        } else {
+            None
+        };
+
+        // Ensure the current base is different from both previous and next base
+        let is_unique = match (prev_base, next_base) {
+            (Some(prev), Some(next)) => current_base != prev && current_base != next,
+            (Some(prev), None) => current_base != prev,
+            (None, Some(next)) => current_base != next,
+            (None, None) => true,
+        };
+
+        let n_supported = counter.iter().fold(0u8, |acc, (_, &c)| if c >= 3 { acc + 1 } else { acc });
+
+        if module != "consensus" && n_supported >= 2 && is_unique {
+            supporeted.push(SupportedPos::new(tpos as u16, ins));
+        }
+
+        prev_base = Some(current_base); // Update previous base
+    }
+    
+    
+    supporeted
+}
+
+
+
 
 
 
