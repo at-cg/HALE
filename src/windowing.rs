@@ -41,6 +41,11 @@ impl<'a> OverlapWindow<'a> {
 
 type Windows<'a> = Vec<Vec<OverlapWindow<'a>>>;
 
+
+// this needs attention!!!
+// Maybe we need not to discard everything that is not covering the whole window
+// N character or a 10 at those sites can help ig!
+
 pub(crate) fn extract_windows<'a>(
     windows: &mut Windows<'a>,
     overlap: &'a Overlap,
@@ -271,6 +276,8 @@ pub(crate) fn extract_windows<'a>(
         ));
     }
 }
+
+
 
 fn get_last_cigar_op(cigar: &[u8]) -> CigarOp {
     let op = cigar[cigar.len() - 1];

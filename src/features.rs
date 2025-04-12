@@ -11,15 +11,13 @@ use ndarray::{s, stack, Array, Array2, ArrayBase, ArrayViewMut1, Axis, Data, Ix2
 use ordered_float::OrderedFloat;
 
 use crate::aligners::{CigarIter, CigarOp};
-// use crate::consensus;
 use crate::haec_io::HAECRecord;
 use crate::inference::{prepare_examples, InferenceData, WindowExample};
-// use crate::inference::{InferenceData};
 use crate::overlaps::{Alignment, Strand};
 use crate::pbars::PBarNotification;
 use crate::windowing::{extract_windows, OverlapWindow};
 
-pub(crate) const TOP_K: usize = 30;
+pub(crate) const TOP_K: usize = 20;
 
 const BASE_LOWER: [u8; 128] = [
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -256,11 +254,6 @@ fn write_target_for_window(
 ) {
     bases.fill(b'*'); // Fill like forward
 
-    /*let tlen = tstart + window_length - tstart;
-    target
-        .seq
-        .get_subseq(tstart..tstart + window_length, tbuffer);*/
-
     let mut tpos = 0;
     tbuffer[tstart..tstart + window_length]
         .iter()
@@ -327,8 +320,6 @@ fn overlap_window_filter(cigar: &[u8]) -> bool {
         _ => false,
     });
 
-    //accuracy >= 0.80 && !long_indel
-    //calculate_accuracy(cigar) >= 0.85 &&
     !long_indel
 }
 
@@ -352,33 +343,6 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
     for alignment in overlaps.iter() {
         let qid = alignment.overlap.return_other_id(rid);
 
-        // TODO - Remove this if unecessary
-        /*let mut cigar = get_proper_cigar(&alignment.cigar, overlap.tid == rid, overlap.strand);
-
-        // TODO - get proper target and query
-        let (tstart, tend, qstart, qend) = if overlap.tid == rid {
-            (overlap.tstart, overlap.tend, overlap.qstart, overlap.qend)
-        } else {
-            (overlap.qstart, overlap.qend, overlap.tstart, overlap.tend)
-        };
-
-        let tlen = tend as usize - tstart as usize;
-        reads[rid as usize]
-            .seq
-            .get_subseq(tstart as usize..tend as usize, tbuf);
-
-        let qlen = qend as usize - qstart as usize;
-        if overlaps::Strand::Forward == overlap.strand {
-            reads[qid as usize]
-                .seq
-                .get_subseq(qstart as usize..qend as usize, qbuf);
-        } else {
-            reads[qid as usize]
-                .seq
-                .get_rc_subseq(qstart as usize..qend as usize, qbuf);
-        }
-        let (tshift, qshift) = fix_cigar(&mut cigar, &tbuf[..tlen], &qbuf[..qlen]); */
-
         let (tshift, qshift) = (0, 0);
 
         //Extract windows
@@ -394,15 +358,8 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
         );
 
         ovlps_cigar_map.insert(qid, &alignment.cigar);
+
     }
-
-    // Create directory for the read
-    //let output_path = Path::new("features").join(&read.id);
-    //create_dir_all(&output_path).expect("Cannot create directory");
-
-    // let result: String = read.id.iter().map(|&c| c as u8 as char).collect();
-
-    // println!("{:#?},{:#?}", result ,rid);
 
     feats_output.init(rid, &read.id);
     for i in 0..n_windows {
@@ -449,10 +406,6 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             }
 
             let acc = calculate_accuracy(ow, cigar, &tbuf[tstart..tend], &qbuf[..qlen]);
-            // if rid == 352392{
-            //     println!("{},{},{},{}",rid, qid, acc, i);
-            // }
-            // println!("{}", rid);
             OrderedFloat(-acc)
         });
 
@@ -483,14 +436,11 @@ pub(crate) fn extract_features<'a, T: FeaturesOutput<'a>>(
             })
             .collect();
 
-        // let supported = get_supported_without_hp(&bases, module);
         let supported = get_supported(&bases, module);
 
 
 
         let qids_test: Vec<u32> = windows[i].iter().map(|ow| ow.overlap.qid).collect();
-        // println!("qids here: {:#?}", qids);
-        // println!("windows[i] is here: {:#?}", windows[i]);
 
         feats_output.update(
             rid,
@@ -600,7 +550,11 @@ fn calculate_accuracy(window: &OverlapWindow, cigar: &[u8], tseq: &[u8], qseq: &
         }
     }
 
+    // Alignment accuracy criteria giving more weight to match and mismatches
+    // (m as f32) / ((s + m + 2*(i + d)) as f32)
+
     (m as f32) / ((m + s + i + d) as f32)
+
 }
 
 
@@ -627,104 +581,26 @@ where
             ins = 0;
         }
 
+        let mut has_dot = false;
+
         counter.iter_mut().for_each(|(_, c)| *c = 0);
-        // col.iter().for_each(|&b| {
-        //     if b == b'.' {
-        //         return;
-        //     }
-
-        //     *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
-        // });
-
-        col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
+        col.iter().for_each(|&b| {
             if b == b'.' {
+                has_dot = true;
                 return;
             }
 
             *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
         });
-        
-        // I dont want to consider * for my informative positions!
-        // counter.insert(b'*', 0);
 
         let n_supported = counter
             .iter()
             .fold(0u8, |acc, (_, &c)| if c >= 3 { acc + 1 } else { acc });
-        if module != "consensus" && n_supported >= 2 {
+        if !has_dot && module != "consensus" && n_supported >= 2 {
             supporeted.push(SupportedPos::new(tpos as u16, ins));
         }
-
-        // if n_supported >= 2 {
-        //     supporeted.push(SupportedPos::new(tpos as u16, ins));
-        // }
     }
 
-    supporeted
-}
-
-
-
-
-fn get_supported_without_hp<S>(bases: &ArrayBase<S, Ix2>, module: &str) -> Vec<SupportedPos>
-where
-    S: Data<Elem = u8>,
-{
-
-    let mut counter: HashMap<u8, u8> = HashMap::default();
-    counter.insert(b'A', 0);
-    counter.insert(b'C', 0);
-    counter.insert(b'G', 0);
-    counter.insert(b'T', 0);
-    counter.insert(b'*', 0);
-
-    let mut supporeted = Vec::new();
-
-    let (mut tpos, mut ins) = (-1i16, 0);
-
-    let mut prev_base: Option<u8> = None; // Store the base of the previous column
-    for (col_idx, col) in bases.axis_iter(Axis(0)).enumerate() {
-        if col[0] == b'*' {
-            ins += 1;
-        } else {
-            tpos += 1;
-            ins = 0;
-        }
-
-        counter.iter_mut().for_each(|(_, c)| *c = 0);
-
-        col.iter().take(std::cmp::min(20, col.len())).for_each(|&b| {
-            if b == b'.' {
-                return;
-            }
-
-            *counter.get_mut(&BASE_FORWARD[b as usize]).unwrap() += 1;
-        });
-
-        let current_base = col[0]; // The current column's base
-        let next_base = if col_idx + 1 < bases.shape()[0] {
-            Some(bases.index_axis(Axis(0), col_idx + 1)[0])
-        } else {
-            None
-        };
-
-        // Ensure the current base is different from both previous and next base
-        let is_unique = match (prev_base, next_base) {
-            (Some(prev), Some(next)) => current_base != prev && current_base != next,
-            (Some(prev), None) => current_base != prev,
-            (None, Some(next)) => current_base != next,
-            (None, None) => true,
-        };
-
-        let n_supported = counter.iter().fold(0u8, |acc, (_, &c)| if c >= 3 { acc + 1 } else { acc });
-
-        if module != "consensus" && n_supported >= 2 && is_unique {
-            supporeted.push(SupportedPos::new(tpos as u16, ins));
-        }
-
-        prev_base = Some(current_base); // Update previous base
-    }
-    
-    
     supporeted
 }
 

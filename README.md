@@ -77,7 +77,7 @@ Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_id
 ```shell
 hale inference --read-alns <directory_alignment_batches> -m "hale" <preprocessed_reads> <fasta_output> 
 ```
-Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "binary_mec", "consensus". The default option is "hale".
+Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "pih", "consensus". "pih" stands for passive informative sites handling The default option is "hale".
 
 
 ## Acknowledgements

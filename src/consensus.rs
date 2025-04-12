@@ -86,9 +86,6 @@ where
 }
 
 fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
-    // println!("Data and: {:#?}", data);
-    // println!("Counts: {:#?}", counts);
-
     let mut corrected_seqs = Vec::new();
     let mut corrected: Vec<u8> = Vec::new();
 
@@ -97,7 +94,6 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
         .enumerate()
         .filter_map(|(idx, win)| if win.n_alns > 1 { Some(idx) } else { None })
         .minmax();
-    // println!("minmax is: {:#?}", minmax);
     let (wid_st, wid_en) = match minmax {
         NoElements => {
             return None;
@@ -138,9 +134,6 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                 .collect(),
         };
 
-        // println!("bases: {:#?}", bases);
-        // println!("maybeinfo: {:#?}", maybe_info);
-
         let (mut pos, mut ins) = (-1i32, 0);
         for col in bases.axis_iter(Axis(0)) {
             if col[0] == BASES_MAP[b'*' as usize] {
@@ -150,39 +143,22 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                 ins = 0;
             }
 
-            // To make this code, only consensus: Keep only else part of the code, in the below if else block!
-
             if let Some((_, b)) = maybe_info.get(&SupportedPos::new(pos as u16, ins)) {
-                // println!("base, pos, ins {} {} {}", b, pos, ins);
+                // recoganise other bases as well!
                 let base = match *b {
                     0 => b'A',
                     1 => b'C',
                     2 => b'G',
                     3 => b'T',
                     4 => b'*',
+                    5 => b'a',
+                    6 => b'c',
+                    7 => b'g',
+                    8 => b't',
+                    9 => b'*',
                     _ => panic!("Unrecognized base"),
                 };
 
-                /*if *il > 0.0 {
-                    println!(
-                        "{}\t{}\t{}",
-                        std::str::from_utf8(&read.id).unwrap(),
-                        corrected_seqs.len(),
-                        corrected.len(),
-                    );
-                }*/
-
-                /*println!(
-                    "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                    std::str::from_utf8(&read.id).unwrap(),
-                    wid,
-                    pos,
-                    ins,
-                    corrected_seqs.len(),
-                    corrected.len(),
-                    'S',
-                    base
-                );*/
                 if base != b'*' {
                     corrected.push(base);
                 }
@@ -227,48 +203,12 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                     corrected.push(base);
                 }
             }
-        
-            // // // // // // // // // // // // // // // // // // // // // // // // // // // 
-            
-            // // Just consensus
-            // counts.iter_mut().for_each(|c| *c = 0);
-            // col.iter().for_each(|&b| {
-            //     if b != BASES_MAP[b'.' as usize] {
-            //         counts[BASES_UPPER_COUNTER[b as usize]] += 1;
-            //     }
-            // });
-
-            // // Get two most common bases and counts - (c, b)
-            // let (mc0, mc1) = counts
-            //     .iter()
-            //     .enumerate()
-            //     .sorted_by_key(|(_, c)| Reverse(*c))
-            //     .take(2)
-            //     .map(|(i, c)| (*c, BASES_UPPER[i]))
-            //     .collect_tuple()
-            //     .unwrap();
-            // let tbase = BASES_UPPER[col[0] as usize];
-
-            // let base = if mc0.0 < 2 || (mc0.0 == mc1.0 && (mc0.1 == tbase || mc1.1 == tbase)) {
-            //     tbase
-            // } else {
-            //     mc0.1
-            // };
-            
-            // if base != b'*' {
-            //     corrected.push(base);
-            // }
-
-            // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // // 
-
         }
     }
 
     if corrected.len() > 0 {
         corrected_seqs.push(corrected);
     }
-
-    // println!("Corrected_Seqs: {:#?}", corrected_seqs);
 
     Some(corrected_seqs)
 }
