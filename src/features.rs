@@ -551,7 +551,7 @@ fn calculate_accuracy(window: &OverlapWindow, cigar: &[u8], tseq: &[u8], qseq: &
     }
 
     // Alignment accuracy criteria giving more weight to match and mismatches
-    // (m as f32) / ((s + m + 2*(i + d)) as f32)
+    // (m as f32) / ((5*s + m + i + d) as f32)
 
     (m as f32) / ((m + s + i + d) as f32)
 

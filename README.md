@@ -85,6 +85,12 @@ Note: The flag ```-m``` is for module which takes three valid entries namely "ha
 This work leverages components of the HERRO framework, developed by Stanojevic et al. (2024) (bioRxiv, doi:10.1101/2024.05.18.594796). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, windowing, and post-processing for consensus generation with minimal modifications. We are grateful to the HERRO authors for their valuable contribution to this field.
 
 
+
+<!--
+# if tie for majority base and one of them is target base consider that!
+
+-->
+
 <!-- 
 ## Demo data
 

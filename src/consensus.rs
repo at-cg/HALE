@@ -151,11 +151,6 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                     2 => b'G',
                     3 => b'T',
                     4 => b'*',
-                    5 => b'a',
-                    6 => b'c',
-                    7 => b'g',
-                    8 => b't',
-                    9 => b'*',
                     _ => panic!("Unrecognized base"),
                 };
 

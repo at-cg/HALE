@@ -64,9 +64,8 @@ fn random_f32_vector(size: usize) -> Vec<f32> {
 
 // Modified MEC or HALE code here!
 fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
-    let mut corrected: Vec<u8> = Vec::new();
+    let corrected: Vec<u8> = Vec::new();
 
-    // Picking code from consensus that will fit here as well:
     let minmax = data
         .iter()
         .enumerate()
@@ -92,9 +91,10 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
         let informative_bases = filter_bases(&bases, &window.supported);
         let transposed = informative_bases.t().to_owned();
 
+
         let correction = if module == "hale" {
-            naive_modified_mec(&transposed)
-            // naive_modified_mec_weighted(&transposed)
+            // naive_modified_mec(&transposed)
+            naive_modified_mec_weighted(&transposed)
         } else if module == "pih" {
             // pih: passive informative handling
             let row0 = transposed.row(0);
@@ -161,9 +161,8 @@ fn get_bitmask_cost(bitmask: u32, bases: &Array2<u8>, set_bits: u32) -> u32 {
         for j in 1..n {
             if (bitmask & (1 << (j - 1))) != 0 {
                 let base = bases[[j, i]];
-                let base_0 = bases[[0, i]];
 
-                if base != BASES_MAP[b'.' as usize] && base_0 != BASES_MAP[b'.' as usize] {
+                if base != BASES_MAP[b'.' as usize] {
                     match base {
                         x if x == BASES_MAP[b'A' as usize] || x == BASES_MAP[b'a' as usize] => a_base += 1,
                         x if x == BASES_MAP[b'T' as usize] || x == BASES_MAP[b't' as usize] => t_base += 1,
@@ -230,7 +229,7 @@ fn naive_modified_mec(bases: &Array2<u8>) -> Vec<u8> {
     let m = bases.ncols();
 
     let total_bits = (n - 1) as u32;
-    let mut set_bits = total_bits/3;
+    let mut set_bits = max(2, total_bits / 3);
 
     let mut bitmask = (1 << set_bits) - 1; // Smallest bitmask with `set_bits` bits set
     let mut min_cost = u32::MAX;
@@ -292,7 +291,6 @@ fn naive_modified_mec(bases: &Array2<u8>) -> Vec<u8> {
         
     }
 
-
     corrections
 }
 
@@ -332,10 +330,16 @@ fn get_col_weight(bases: &Array2<u8>) -> Vec<f32> {
         } else {
             weights[i] = 1 as f32;
         }
+
+        // weights[i] = 1 as f32;
+
+        if base_counts[4]==max_base || bases[[0,i]] == BASES_MAP[b'*' as usize] || bases[[0,i]] == BASES_MAP[b'#' as usize] {
+            weights[i] = 0.1 as f32;
+        }
+
         // weights[i] = ((max_base + second_max) as f32)/ ((max_base - second_max + 1) as f32);
 
     }
-
 
     weights
 }
@@ -347,7 +351,7 @@ fn naive_modified_mec_weighted(bases: &Array2<u8>) -> Vec<u8> {
     let m = bases.ncols();
 
     let total_bits = (n - 1) as u32;
-    let mut set_bits = total_bits / 3;
+    let mut set_bits = max(2, total_bits / 3);
     
     let mut bitmask = (1 << set_bits) - 1; // Smallest bitmask with `set_bits` bits set
     let mut min_cost = f32::MAX;
