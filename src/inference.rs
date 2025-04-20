@@ -323,19 +323,23 @@ fn get_col_weight(bases: &Array2<u8>) -> Vec<f32> {
         counts.sort_unstable_by(|a, b| b.cmp(a));
         let max_base = counts[0];
         let second_max = counts[1];
-        if max_base - second_max < 5 {
-            weights[i] = 4 as f32;
-        } else if max_base - second_max < 10 {
-            weights[i] = 2 as f32;
-        } else {
-            weights[i] = 1 as f32;
-        }
+        // if max_base - second_max < 5 {
+        //     weights[i] = 4 as f32;
+        // } else if max_base - second_max < 10 {
+        //     weights[i] = 2 as f32;
+        // } else {
+        //     weights[i] = 1 as f32;
+        // }
 
-        // weights[i] = 1 as f32;
+        weights[i] = 1 as f32;
 
-        if base_counts[4]==max_base || bases[[0,i]] == BASES_MAP[b'*' as usize] || bases[[0,i]] == BASES_MAP[b'#' as usize] {
+        if base_counts[4]==max_base || base_counts[4]==second_max {
             weights[i] = 0.1 as f32;
         }
+
+        // if base_counts[4]==max_base || bases[[0,i]] == BASES_MAP[b'*' as usize] || bases[[0,i]] == BASES_MAP[b'#' as usize] {
+        //     weights[i] = 0.1 as f32;
+        // }
 
         // weights[i] = ((max_base + second_max) as f32)/ ((max_base - second_max + 1) as f32);
 
