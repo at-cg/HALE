@@ -56,6 +56,13 @@ struct InferenceArgs {
     batch_size: usize,
 
     #[arg(
+        short = 't',
+        default_value = "128",
+        help = "number of threads"
+    )]
+    n_threads: usize,
+
+    #[arg(
         short = 'c',
         default_value = "",
         help = "Path to a cluster of reads."
@@ -94,6 +101,7 @@ fn main() {
                 &args.cluster,
                 args.window_size,
                 args.batch_size,
+                args.n_threads,
                 mode,
                 &args.module,
             );

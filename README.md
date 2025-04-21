@@ -75,76 +75,15 @@ Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_id
 
 3. Error-correction
 ```shell
-hale inference --read-alns <directory_alignment_batches> -m "hale" <preprocessed_reads> <fasta_output> 
+hale inference --read-alns <directory_alignment_batches> -m "hale" -t 64 <preprocessed_reads> <fasta_output> 
 ```
-Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "pih", "consensus". "pih" stands for passive informative sites handling The default option is "hale".
+Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "pih", "consensus". "pih" stands for passive informative sites handling The default option is "hale". Flag ```-t``` represent number of threads.
 
 
 ## Acknowledgements
 
 This work leverages components of the HERRO framework, developed by Stanojevic et al. (2024) (bioRxiv, doi:10.1101/2024.05.18.594796). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, windowing, and post-processing for consensus generation with minimal modifications. We are grateful to the HERRO authors for their valuable contribution to this field.
 
-
-
-<!--
-# if tie for majority base and one of them is target base consider that!
-
--->
-
-<!-- 
-## Demo data
-
-Instructions for downloading and running the demo data can be found [here](https://github.com/lbcb-sci/hale/blob/main/demo/README.txt).
-
-## Citing hale
-
-> Stanojevic, D., Lin, D., Florez De Sessions, P., & Sikic, M. (2024). Telomere-to-telomere phased genome assembly using error-corrected Simplex nanopore reads. bioRxiv, 2024-05. [doi:10.1101/2024.05.18.594796](https://doi.org/10.1101/2024.05.18.594796)
-
-## Results on HG002 data
-
-HG002 data was assembled using hifiasm and compared to HiFi reads. Results for uncorrected reads are not given since they produce poor assembly. Currently, data is not publicly available.
-
-Assembly results and comparison with Hifi reads and uncorrected UL are given in the table below. Assemblies were perform using:
-
-1. Hifi reads/Duplex ONT reads/Corrected UL reads
-2. Uncorrected Ultra-long ONT reads as UL reads
-3. Parental Illumina data
-
-Hifiasm command used for all experiments:
-```shell
-hifiasm -o <output_prefix> -t <num_threads> --ul <UL_reads> --ul-cut 10000 -1 <parent1_yak> -2 <parent2_yak> <HiFi/Duplex/Corrected UL reads>
-```
-
-### Results
-
-<img src='hg002-assm-results.png' alt="HG002 Assembly Results" width='600'>
-
-
-## Results on Error-corrected HG002 experimental, high-accuracy, UL data
-
-Experimental high-accuracy, UL HG002 error-corrected reads can be downloaded as below. 
-Raw data used for the error-correction can be found [here](https://labs.epi2me.io/gm24385_ncm23_preview/). Assemblies were done in the same way as in the previous section.
-
-### Download
-  1. Download error-corrected reads:
-  ```shell
-  wget -O HG002.experimentalUL.corrected.fasta.gz https://zenodo.org/records/13252378/files/HG002.experimentalUL.corrected.fasta.gz?download=1
-  ```
-
-### Results
-
-Assembly results and comparison with Hifi reads and uncorrected UL are given in the table below. Assemblies were perform using:
-
-1. Hifi/HQ Uncorrected UL/Corrected UL reads
-2. HQ Uncorrected Ultra-long ONT reads as UL reads
-3. Parental Illumina data
-
-<img src='hg002-hq-assm-results.png' alt="HG002 HQ Assembly Results" width='600'>
-
-
-## Acknowledgements
-
-This work has been supported by AI Singapore 100 Experiments (100E) Programme under the project AI-driven De Novo Diploid Assembler (AISG2-100E-2021-076) in collaboration with Agency for Science, Technology and Research (A*STAR), and Oxford Nanopore Technologies plc. (ONT). -->
 
 
 

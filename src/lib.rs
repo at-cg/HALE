@@ -54,6 +54,7 @@ pub fn error_correction<T, U, V>(
     cluster_path: &str,
     window_size: u32,
     batch_size: usize,
+    n_threads: usize,
     aln_mode: AlnMode<V>,
     module: &str,
 ) where
@@ -61,7 +62,7 @@ pub fn error_correction<T, U, V>(
     U: AsRef<Path> + Send + Sync,
     V: AsRef<Path> + Send,
 {
-    let num_threads = 64;
+    let num_threads = n_threads/2;
 
     // cluster is an optimization that can help reduce memory by parsing only those reads that in in current all-vs-all overlaps
     let (core, neighbour) = read_cluster(&cluster_path);
