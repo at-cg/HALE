@@ -1,6 +1,7 @@
 # HALE
 
-HALE (Haplotype-Aware Long read Error correction)  is a haplotype-aware error-correction tool for PacBio Hifi reads and can be used for ONT Simplex reads as well. However the tools performance on ONT data still needs improvement to match its competitors like hale which uses Deep-learning approach t solve this problem.
+HALE (Haplotype-Aware Long-read Error correction) is a haplotype-aware tool designed for error correction of long reads. It has been primarily evaluated on PacBio HiFi data, with planned extensions to support ONT simplex reads in the future. 
+<!-- However, its performance on ONT data currently lags behind that of competing methods, such as HERRO, which leverage deep learning approaches to tackle the same problem. -->
 
 ## Requirements
 
@@ -38,23 +39,6 @@ Path to the resulting binary: ```target/release/hale```
 
 Compiling from source takes just a few minutes on a standard machine.
 
-<!-- 
-## Model Download
-
-  1. Download model:
-     
-  For R10.4.1 data,
-  ```shell
-  wget -O model_R10_v0.1.pt https://zenodo.org/records/12683277/files/model_v0.1.pt?download=1
-  ```
-  For R9.4.1 data (experimental),
-  ```shell
-  wget -O model_R9_v0.1.pt https://zenodo.org/records/12683277/files/model_R9_v0.1.pt?download=1
-  ```
-
-Models can also be found on Zenodo: [https://zenodo.org/records/12683277](https://zenodo.org/records/12683277)
-
--->
 
 ## Usage
 
@@ -62,7 +46,9 @@ Models can also be found on Zenodo: [https://zenodo.org/records/12683277](https:
 ```shell
 scripts/preprocess.sh <input_fastq> <output_prefix> <number_of_threads> <parts_to_split_job_into>
 ```
-Note: Porechop loads all reads into memory, so the input may need to be split into multiple parts. Set <parts_to_split_job_into> to 1 if splitting is not needed. In Dorado v0.5, adapter trimming was added, so adapter trimming and splitting using Porechop and duplex tools will probably be removed in the future.
+Note: Porechop loads all reads into memory, so large input files may need to be split into multiple parts to avoid memory issues. If splitting is not required, set <parts_to_split_job_into> to 1.
+As of Dorado v0.5, adapter trimming functionality has been integrated, making separate trimming and splitting steps using Porechop and duplex-tools likely obsolete in future releases. 
+We have currently retained this step consistent with the preprocessing used in HERRO.
 
 2. minimap2 alignment and batching
 
@@ -71,13 +57,14 @@ Although minimap2 can be run from the ```hale``` binary (omit --read-alns or use
 ```shell
 scripts/create_batched_alignments.sh <output_from_reads_preprocessing> <read_ids> <num_of_threads> <directory_for_batches_of_alignments> 
 ```
-Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_ids>```
+We use same parameters for minimap2 as HERRO
+<p> Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_ids>``` </p>
 
 3. Error-correction
 ```shell
 hale inference --read-alns <directory_alignment_batches> -m "hale" -t 64 <preprocessed_reads> <fasta_output> 
 ```
-Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "pih", "consensus". "pih" stands for passive informative sites handling The default option is "hale". Flag ```-t``` represent number of threads.
+Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "pih", "consensus". "consensus" implements Naive 1 strategy and "pih (passive informative sites handling)" implements Naive 1 strategy as defined in the paper. The default option is "hale". Flag ```-t``` represent number of threads.
 
 
 ## Acknowledgements
