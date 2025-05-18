@@ -5,7 +5,7 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
 
 ## <a name="requirements"></a> Requirements
 - Linux OS (tested on RHEL 8 and Ubuntu 22.04)
-- [rustup](https://rustup.rs/)
+- [rustup](https://rustup.rs/) (Install using [rustup](https://rustup.rs/), the recommended way to get Rust)
 - Python 3.1 or above (and conda) for data preprocessing
 
   ### <a name="sys-requirements"></a> System Requirements
