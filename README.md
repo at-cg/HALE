@@ -1,88 +1,88 @@
-# HALE
+## <a name="intro"></a>Introduction
 
-HALE (Haplotype-Aware Long-read Error correction) is a haplotype-aware tool designed for error correction of long reads. It has been primarily evaluated on PacBio HiFi data, with planned extensions to support ONT simplex reads in the future. 
-<!-- However, its performance on ONT data currently lags behind that of competing methods, such as HERRO, which leverage deep learning approaches to tackle the same problem. -->
+HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype-aware error correction tool designed for long reads. It has been primarily evaluated on PacBio HiFi data, with planned extensions to support ONT simplex reads in the future. 
 
-## Requirements
 
-- Linux OS (tested on RHEL 8.6 and Ubuntu 22.04)
+## <a name="requirements"></a> Requirements
 - [Zstandard](https://facebook.github.io/zstd/)
-- Python (and conda) for data preprocessing
-
-### Compile from source
-
-- [libtorch 2.0.*](https://download.pytorch.org/libtorch/cu117/libtorch-cxx11-abi-shared-with-deps-2.0.1%2Bcu117.zip)
 - [rustup](https://rustup.rs/)
+- Python (and conda)
 
 
-## Installation
+## <a name="install"></a>Installation
 
-0. Clone the repository
-```shell
-git clone https://github.com/parveshbarak/HALE.git
+1. Clone the repository:
+```sh
+git clone https://github.com/at-cg/HALE.git
+```
+
+2. Compile the source code:
+```sh
 cd HALE
-```
-
-1. Create conda environment
-```shell
-conda env create --file scripts/hale-env.yml
-```
-
-2. Build ```hale``` binary (ensure that libtorch and rustup are downloaded and installed.)
-
-```shell
-export LIBTORCH=<libtorch_path>
-export LD_LIBRARY_PATH=$LIBTORCH/lib:$LD_LIBRARY_PATH
 RUSTFLAGS="-Ctarget-cpu=native" cargo build -q --release
 ```
-Path to the resulting binary: ```target/release/hale```
 
-Compiling from source takes just a few minutes on a standard machine.
-
-
-## Usage
-
-1. Preprocess reads
-```shell
-scripts/preprocess.sh <input_fastq> <output_prefix> <number_of_threads> <parts_to_split_job_into>
+3. Create conda env
+```sh
+conda env create --file scripts/hale-env.yml
+conda activate hale
 ```
-Note: Porechop loads all reads into memory, so large input files may need to be split into multiple parts to avoid memory issues. If splitting is not required, set <parts_to_split_job_into> to 1.
-As of Dorado v0.5, adapter trimming functionality has been integrated, making separate trimming and splitting steps using Porechop and duplex-tools likely obsolete in future releases. 
-We have currently retained this step consistent with the preprocessing used in HERRO.
 
-2. minimap2 alignment and batching
 
-Although minimap2 can be run from the ```hale``` binary (omit --read-alns or use --write-alns to store batched alignments for future use).
+##  <a name="usage"></a>Usage
 
+1. minimap2 alignment and batching
 ```shell
-scripts/create_batched_alignments.sh <output_from_reads_preprocessing> <read_ids> <num_of_threads> <directory_for_batches_of_alignments> 
+scripts/create_batched_alignments.sh <input_fastq/input_fastq.gz> <read_ids> <num_of_threads> <directory_for_batches_of_alignments> 
 ```
-We use same parameters for minimap2 as HERRO
-<p> Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <reads> > <read_ids>``` </p>
+We use same parameters for minimap2 as HERRO <br>
+Note: Read ids can be obtained with seqkit: ```seqkit seq -ni <input_fastq/input_fastq.gz> > <read_ids>```
 
 3. Error-correction
 ```shell
-hale inference --read-alns <directory_alignment_batches> -m "hale" -t 64 <preprocessed_reads> <fasta_output> 
+hale inference --read-alns <directory_for_batches_of_alignments> -t 64 <input_fastq/input_fastq.gz> <fasta_output> 
 ```
-Note: The flag ```-m``` is for module which takes three valid entries namely "hale", "pih", "consensus". "consensus" implements Naive 1 strategy and "pih (passive informative sites handling)" implements Naive 1 strategy as defined in the paper. The default option is "hale". Flag ```-t``` represent number of threads.
+Note: Flag ```-t``` represent number of threads.
 
 
-## Acknowledgements
+## <a name="started"></a>Try HALE on Small Test Data
+The entire test workflow below will take about 3-4 minutes. Users can either run the commands one by one or copy the commands into an executable script.
+
+```sh
+# Install HALE 
+git clone https://github.com/at-cg/HALE.git
+cd HALE && RUSTFLAGS="-Ctarget-cpu=native" cargo build -q --release
+
+# Create conda env
+conda env create --file scripts/hale-env.yml
+conda activate hale
+
+mkdir -p test_run && cd test_run/
+
+# download small test dataset
+wget -O HG002.chr19_10M_12M.fastq.gz https://zenodo.org/records/14048797/files/HG002.chr19_10M_12M.fastq.gz?download=1
+
+# Get all read ids in a seperate file
+seqkit seq -ni HG002.chr19_10M_12M.fastq.gz > HG002.chr19_10M_12M.read_ids
+
+# Run all-vs-all overlap
+../scripts/create_batched_alignments.sh HG002.chr19_10M_12M.fastq.gz HG002.chr19_10M_12M.read_ids 8 batch_alignments
+
+# Run hale 
+hale inference --read-alns batch_alignments -t 8 HG002.chr19_10M_12M.fastq.gz HG002.chr19_10M_12M_corrected.fa
+
+```
+For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 9 minutes and ~50 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
+
+
+
+##  <a name="ack"></a>Acknowledgements
 
 This work leverages components of the HERRO framework, developed by Stanojevic et al. (2024) (bioRxiv, doi:10.1101/2024.05.18.594796). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, windowing, and post-processing for consensus generation with minimal modifications. We are grateful to the HERRO authors for their valuable contribution to this field.
 
 
 
 
-<!-- TO do:
-
-  1. Update the readme file.
-  2. Make the code clean by removing unwated things [like generate features in main file]
-  3. Make the code faster by better parallelism
-  4. Update the code to take different running schemes as input like [consenus, original mec, hale] etc.
-  5. 
 
 
 
-
- -->
