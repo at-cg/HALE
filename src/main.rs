@@ -19,7 +19,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     #[command(about = "Subcommand used for error-correcting reads")]
-    Inference(InferenceArgs),
+    Correct(CorrectArgs),
 }
 
 #[derive(Args)]
@@ -37,7 +37,7 @@ struct AlignmentsIO {
 
 
 #[derive(Args)]
-struct InferenceArgs {
+struct CorrectArgs {
     #[command(flatten)]
     alns: AlignmentsIO,
 
@@ -87,7 +87,7 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Inference(args) => {
+        Commands::Correct(args) => {
             let mode = match (args.alns.read_alns, args.alns.write_alns) {
                 (None, None) => AlnMode::None,
                 (Some(p), None) => AlnMode::Read(p),

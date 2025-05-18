@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::features::SupportedPos;
 
-use crate::inference::BASES_MAP;
+use crate::correct::BASES_MAP;
 
 const BASES_UPPER: [u8; 10] = [b'A', b'C', b'G', b'T', b'*', b'A', b'C', b'G', b'T', b'*'];
 const BASES_UPPER_COUNTER: [usize; 10] = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4];

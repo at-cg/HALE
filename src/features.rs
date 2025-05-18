@@ -12,7 +12,7 @@ use ordered_float::OrderedFloat;
 
 use crate::aligners::{CigarIter, CigarOp};
 use crate::haec_io::HAECRecord;
-use crate::inference::{prepare_examples, InferenceData, WindowExample};
+use crate::correct::{prepare_examples, CorrectData, WindowExample};
 use crate::overlaps::{Alignment, Strand};
 use crate::pbars::PBarNotification;
 use crate::windowing::{extract_windows, OverlapWindow};
@@ -728,14 +728,14 @@ where
     }
 }
 
-pub(crate) struct InferenceOutput {
-    sender: Sender<InferenceData>,
+pub(crate) struct CorrectOutput {
+    sender: Sender<CorrectData>,
     features: Vec<WindowExample>,
     batch_size: usize,
 }
 
-impl InferenceOutput {
-    pub(crate) fn new(sender: Sender<InferenceData>, batch_size: usize) -> Self {
+impl CorrectOutput {
+    pub(crate) fn new(sender: Sender<CorrectData>, batch_size: usize) -> Self {
         Self {
             sender,
             features: Vec::with_capacity(batch_size),
@@ -744,7 +744,7 @@ impl InferenceOutput {
     }
 }
 
-impl<'a> FeaturesOutput<'a> for InferenceOutput {
+impl<'a> FeaturesOutput<'a> for CorrectOutput {
     fn init<'b>(&mut self, _rid: u32, _rname: &'b [u8])
     where
         'b: 'a,

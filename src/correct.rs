@@ -28,11 +28,11 @@ const BASES_UPPER_COUNTER2: [u8; 10] = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4];
 // const BASES_LOWER_COUNTER2: [u8; 10] = [5, 6, 7, 8, 9, 5, 6, 7, 8, 9];
 
 #[derive(Debug)]
-pub(crate) struct InferenceData {
+pub(crate) struct CorrectData {
     consensus_data: ConsensusData,
 }
 
-impl InferenceData {
+impl CorrectData {
     fn new(consensus_data: ConsensusData) -> Self {
         Self {
             consensus_data,
@@ -40,9 +40,9 @@ impl InferenceData {
     }
 }
 
-pub(crate) fn inference_worker(
+pub(crate) fn correct_worker(
     module: &str,
-    input_channel: Receiver<InferenceData>,
+    input_channel: Receiver<CorrectData>,
     output_channel: Sender<ConsensusData>,
 ) {
     loop {
@@ -428,7 +428,7 @@ fn naive_modified_mec_weighted(bases: &Array2<u8>) -> Vec<u8> {
 pub(crate) fn prepare_examples(
     features: impl IntoIterator<Item = WindowExample>,
     batch_size: usize,
-) -> InferenceData {
+) -> CorrectData {
     let windows: Vec<_> = features
         .into_iter()
         .map(|mut example| {
@@ -469,7 +469,7 @@ pub(crate) fn prepare_examples(
     //     })
     //     .collect();
 
-    InferenceData::new(windows)
+    CorrectData::new(windows)
 }
 
 fn get_target_indices<S: Data<Elem = u8>>(bases: &ArrayBase<S, Ix2>) -> Vec<usize> {

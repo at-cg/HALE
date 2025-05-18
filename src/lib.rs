@@ -21,8 +21,8 @@ use std::{
 
 use crate::{
     consensus::consensus_worker,
-    features::InferenceOutput,
-    inference::inference_worker,
+    features::CorrectOutput,
+    correct::correct_worker,
     overlaps::alignment_reader,
 };
 
@@ -30,7 +30,7 @@ mod aligners;
 mod consensus;
 mod features;
 mod haec_io;
-mod inference;
+mod correct;
 mod mm2;
 mod overlaps;
 mod pbars;
@@ -101,7 +101,7 @@ pub fn error_correction<T, U, V>(
 
             let ref_reads = &reads;
             s.spawn(move || {
-                let mut feats_output = InferenceOutput::new(infer_s, batch_size);
+                let mut feats_output = CorrectOutput::new(infer_s, batch_size);
                 let mut tbuf = vec![0; max_len];
                 let mut qbuf = vec![0; max_len];
 
@@ -126,7 +126,7 @@ pub fn error_correction<T, U, V>(
             let infer_recv_cloned = infer_recv.clone();
             let cons_sender_cloned = cons_sender.clone();
             s.spawn(move || {
-                inference_worker(
+                correct_worker(
                     module,
                     infer_recv_cloned,
                     cons_sender_cloned,
