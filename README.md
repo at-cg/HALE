@@ -8,17 +8,25 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
 - [rustup](https://rustup.rs/) (Install using [rustup](https://rustup.rs/), the recommended way to get Rust)
 - Python 3.1 or above (and conda) for data preprocessing
 
-  ### <a name="sys-requirements"></a> System Requirements
-  Make sure the following system packages are installed (Linux):
-  ```bash
+  <!-- ### <a name="sys-requirements"></a> System Requirements -->
+- Make sure the following system packages are installed (Linux):
+  <!-- - build-essential (build-essential includes g++, make and standard headers like libc6-dev)
+  - autoconf 
+  - libtool 
+  - pkg-config -->
+  - build-essential, autoconf, libtool, pkg-config
+
+  Note: If you're using a Linux system, there's a good chance these system packages are already installed, especially if development tools have been previously set up.
+
+  <!-- ```bash
   sudo apt update
   sudo apt install build-essential autoconf libtool pkg-config
-  ```
+  ``` -->
 
 
 
 ## <a name="started"></a>Try HALE on Small Test Data
-The entire test workflow below will take about 20-30 minutes. Users can either run the commands one by one or copy the commands into an executable script.
+The entire test workflow below will take about 5-6 minutes. Users can either run the commands one by one or copy the commands into an executable script.
 
 ```sh
 # Install HALE 
