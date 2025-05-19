@@ -52,7 +52,7 @@ seqkit seq -ni HG002.chr19_10M_12M.fastq.gz > HG002.chr19_10M_12M.read_ids
 ../target/release/hale correct --read-alns batch_alignments -t 8 HG002.chr19_10M_12M.fastq.gz HG002.chr19_10M_12M_corrected.fa
 
 ```
-For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 9 minutes and ~50 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
+For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 16 minutes for all-vs-all overlap and 9 minutes for correction consuming ~50 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
 
 
 
