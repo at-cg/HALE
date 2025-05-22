@@ -97,7 +97,7 @@ Note: Flag ```-t``` represent number of threads.
 
 ##  <a name="ack"></a>Acknowledgement
 
-This work leverages components of the HERRO code, developed by Stanojevic et al. (2024) (bioRxiv, doi:10.1101/2024.05.18.594796). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, windowing, and post-processing for consensus generation with minimal modifications. 
+This work leverages components of [HERRO](https://github.com/lbcb-sci/herro), developed by Stanojevic et al. (2024). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, windowing, and post-processing for consensus generation with minimal modifications. 
 
 
 
