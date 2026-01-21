@@ -21,7 +21,7 @@ const BASES_UPPER_COUNTER: [usize; 10] = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4];
 pub(crate) struct ConsensusWindow {
     pub(crate) rid: u32,
     pub(crate) wid: u16,
-    pub(crate) n_alns: u8,
+    pub(crate) n_alns: u16,
     pub(crate) n_total_wins: u16,
     pub(crate) bases: Array2<u8>,
     pub(crate) quals: Array2<u8>,
@@ -36,7 +36,7 @@ impl ConsensusWindow {
     pub(crate) fn new(
         rid: u32,
         wid: u16,
-        n_alns: u8,
+        n_alns: u16,
         n_total_wins: u16,
         bases: Array2<u8>,
         quals: Array2<u8>,
@@ -85,44 +85,39 @@ where
     heap.into_sorted_vec().into_iter().map(|r| r.0).collect()
 }
 
+
 fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
     let mut corrected_seqs = Vec::new();
     let mut corrected: Vec<u8> = Vec::new();
+    let mut corrected_quals: Vec<u8> = Vec::new();
 
     let minmax = data
         .iter()
         .enumerate()
-        .filter_map(|(idx, win)| if win.n_alns > 1 { Some(idx) } else { None })
+        .filter_map(|(idx, win)| if win.bases.ncols() > 2 { Some(idx) } else { None })
         .minmax();
     let (wid_st, wid_en) = match minmax {
-        NoElements => {
-            return None;
-        }
+        NoElements => return None,
         OneElement(wid) => (wid, wid + 1),
         MinMax(st, en) => (st, en + 1),
     };
 
     for window in data[wid_st..wid_en].iter() {
-        /*if window.n_alns < 2 {
-            let start = wid * window_size;
-            let end = ((wid + 1) * window_size).min(uncorrected.len());
-
-            corrected.extend(&uncorrected[start..end]);
-            continue;
-        }*/
-        if window.n_alns < 2 {
-            if corrected.len() > 0 {
+        if window.bases.ncols() < 3 {
+            if !corrected.is_empty() {
+                corrected.push(b'+');
+                corrected.extend_from_slice(&corrected_quals);
                 corrected_seqs.push(corrected);
                 corrected = Vec::new();
+                corrected_quals = Vec::new();
             }
-
             continue;
         }
 
-        // Don't analyze empty rows: LxR -> LxN
-        //let n_rows = (window.n_alns + 1).min(TOP_K + 1);
-        let n_rows = window.n_alns + 1;
-        let bases = window.bases.slice(s![.., ..n_rows as usize]);
+        let n_rows = window.bases.ncols() as usize;
+        let bases = window.bases.slice(s![.., ..n_rows]);
+        let quals = window.quals.slice(s![.., ..n_rows]);
+
         let maybe_info = match window.supported.len() {
             0 => HashMap::default(),
             _ => window
@@ -135,7 +130,8 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
         };
 
         let (mut pos, mut ins) = (-1i32, 0);
-        for col in bases.axis_iter(Axis(0)) {
+
+        for (col_idx, col) in bases.axis_iter(Axis(0)).enumerate() {
             if col[0] == BASES_MAP[b'*' as usize] {
                 ins += 1;
             } else {
@@ -143,22 +139,18 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                 ins = 0;
             }
 
+            let mut chosen_base: Option<u8> = None;
+
             if let Some((_, b)) = maybe_info.get(&SupportedPos::new(pos as u16, ins)) {
-                // recoganise other bases as well!
-                let base = match *b {
+                chosen_base = Some(match *b {
                     0 => b'A',
                     1 => b'C',
                     2 => b'G',
                     3 => b'T',
                     4 => b'*',
                     _ => panic!("Unrecognized base"),
-                };
-
-                if base != b'*' {
-                    corrected.push(base);
-                }
+                });
             } else {
-                // Count bases
                 counts.iter_mut().for_each(|c| *c = 0);
                 col.iter().for_each(|&b| {
                     if b != BASES_MAP[b'.' as usize] {
@@ -166,7 +158,6 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                     }
                 });
 
-                // Get two most common bases and counts - (c, b)
                 let (mc0, mc1) = counts
                     .iter()
                     .enumerate()
@@ -175,38 +166,62 @@ fn consensus(data: ConsensusData, counts: &mut [u8]) -> Option<Vec<Vec<u8>>> {
                     .map(|(i, c)| (*c, BASES_UPPER[i]))
                     .collect_tuple()
                     .unwrap();
+
                 let tbase = BASES_UPPER[col[0] as usize];
 
-                let base = if mc0.0 < 2 || (mc0.0 == mc1.0 && (mc0.1 == tbase || mc1.1 == tbase)) {
+                chosen_base = Some(if mc0.0 < 2
+                    || (mc0.0 == mc1.0 && (mc0.1 == tbase || mc1.1 == tbase))
+                {
                     tbase
                 } else {
                     mc0.1
-                };
+                });
+            }
 
-                /*println!(
-                    "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                    std::str::from_utf8(&read.id).unwrap(),
-                    wid,
-                    pos,
-                    ins,
-                    corrected_seqs.len(),
-                    corrected.len(),
-                    "N",
-                    base,
-                );*/
+            if let Some(base) = chosen_base {
                 if base != b'*' {
                     corrected.push(base);
+
+                    // ---- QUALITY COMPUTATION ----
+                    let mut counts: HashMap<u8, usize> = HashMap::default();
+
+                    for i in 0..col.len() {
+                        let b = col[i];
+                        let q = quals[[col_idx, i]];
+
+                        if b != BASES_MAP[b'.' as usize] && BASES_UPPER[b as usize] == base {
+                            *counts.entry(q).or_insert(0) += 1;
+                        }
+                    }
+
+                    // Find the quality with the maximum count
+                    let mut majority_q = 0u8;
+                    let mut max_count = 0;
+
+                    for (&q, &count) in &counts {
+                        if count > max_count {
+                            max_count = count;
+                            majority_q = q;
+                        }
+                    }
+
+                    // convert raw Phred → FASTQ ASCII
+                    corrected_quals.push(majority_q.min(60) + 33);
                 }
             }
         }
     }
 
-    if corrected.len() > 0 {
+    if !corrected.is_empty() {
+        corrected.push(b'+');
+        corrected.extend_from_slice(&corrected_quals);
         corrected_seqs.push(corrected);
     }
 
     Some(corrected_seqs)
 }
+
+
 
 pub(crate) fn consensus_worker(
     receiver: Receiver<ConsensusData>,

@@ -1,4 +1,3 @@
-// crossbeam_channel: a crate used for multi-producer multi-consumer channels.
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use features::extract_features;
 use haec_io::HAECRecord;
@@ -35,6 +34,7 @@ mod mm2;
 mod overlaps;
 mod pbars;
 mod windowing;
+mod hale_updated;
 
 pub(crate) const READS_BATCH_SIZE: usize = 50_000;
 pub(crate) const ALN_CHANNEL_CAPACITY: usize = 50_000;
@@ -48,6 +48,9 @@ pub enum AlnMode<V: AsRef<Path>> {
 }
 
 
+
+
+
 pub fn error_correction<T, U, V>(
     reads_path: T,
     output_path: U,
@@ -55,16 +58,31 @@ pub fn error_correction<T, U, V>(
     window_size: u32,
     batch_size: usize,
     n_threads: usize,
+    coverage: usize,
+    ploidy: usize,
     aln_mode: AlnMode<V>,
     module: &str,
 ) where
     T: AsRef<Path> + Send + Sync,
     U: AsRef<Path> + Send + Sync,
     V: AsRef<Path> + Send,
-{
-    let num_threads = n_threads/2;
+{   
+    let TOP_K = std::cmp::min(20,coverage/ploidy);
 
-    // cluster is an optimization that can help reduce memory by parsing only those reads that in in current all-vs-all overlaps
+
+    let num_threads = n_threads;
+    let mut n_correct = std::cmp::min(2, n_threads / 2);
+    let mut n_extract = std::cmp::max(1, n_threads - n_correct);
+    if(module=="hale") {
+        n_correct = std::cmp::max(1, n_threads / 2);
+        n_extract = n_threads.saturating_sub(n_correct);
+    }
+    // let num_threads = n_threads/2;
+    // let n_correct = std::cmp::max(1, n_threads / 2);
+    // let n_extract = n_threads.saturating_sub(n_correct);
+    
+    let num_consensus_threads = std::cmp::min(4,num_threads/16); 
+
     let (core, neighbour) = read_cluster(&cluster_path);
     let mut reads = parse_reads(&reads_path, window_size, &core, &neighbour);
     let max_len = reads.iter().map(|r| r.seq.len()).max().unwrap();
@@ -75,7 +93,7 @@ pub fn error_correction<T, U, V>(
 
     thread::scope(|s| {
         let pbar_s = pbar_sender.clone();
-        s.spawn( || {
+        s.spawn(|| {
             alignment_reader(
                 &reads,
                 &reads_path,
@@ -87,19 +105,16 @@ pub fn error_correction<T, U, V>(
             );
         });
 
-        s.spawn(|| correction_writer(&reads, output_path, writer_receiver, pbar_sender));
-
+        s.spawn(|| correction_writer_2(&reads, output_path, writer_receiver, pbar_sender));
 
         let (infer_sender, infer_recv) = bounded(INFER_CHANNEL_CAP_FACTOR * num_threads);
         let (cons_sender, cons_recv) = unbounded();
-        let writer_s: Sender<(usize, Vec<Vec<u8>>)> = writer_sender.clone();
 
-        for _ in 0..num_threads {
-
+        for _ in 0..n_extract {
             let alns_r = alns_receiver.clone();
             let infer_s = infer_sender.clone();
-
             let ref_reads = &reads;
+
             s.spawn(move || {
                 let mut feats_output = CorrectOutput::new(infer_s, batch_size);
                 let mut tbuf = vec![0; max_len];
@@ -115,16 +130,20 @@ pub fn error_correction<T, U, V>(
                         rid,
                         ref_reads,
                         alns,
-                        window_size,
+                        TOP_K,
                         module,
                         (&mut tbuf, &mut qbuf),
                         &mut feats_output,
                     );
                 }
             });
-
+        }
+        
+        
+        for _ in 0..n_correct {
             let infer_recv_cloned = infer_recv.clone();
             let cons_sender_cloned = cons_sender.clone();
+            
             s.spawn(move || {
                 correct_worker(
                     module,
@@ -134,16 +153,21 @@ pub fn error_correction<T, U, V>(
             });
         }
 
-        s.spawn(move || consensus_worker(cons_recv, writer_s));
+        for _ in 0..num_consensus_threads {
+            let c_recv = cons_recv.clone();
+            let w_sender = writer_sender.clone();
+            s.spawn(move || consensus_worker(c_recv, w_sender));
+        }
+        // --- CHANGE END ---
+
         drop(infer_sender);
         drop(cons_sender);
-        drop(writer_sender);
+        
+        drop(writer_sender); 
 
         track_progress(pbar_receiver);
     });
 }
-
-
 
 
 fn read_cluster(cluster_path: &&str) -> (Option<HashSet<String>>, Option<HashSet<String>>) {
@@ -256,3 +280,87 @@ fn write_sequence<W: Write>(
 
     Ok(())
 }
+
+
+
+
+fn split_seq_qual(buf: &[u8]) -> Result<(&[u8], &[u8]), Error> {
+    let pos = buf.iter().position(|&b| b == b'+')
+        .ok_or_else(|| Error::new(std::io::ErrorKind::InvalidData, "Missing '+' separator"))?;
+
+    let (seq, qual) = buf.split_at(pos);
+    let qual = &qual[1..]; // skip '+'
+
+    if seq.len() != qual.len() {
+        return Err(Error::new(
+            std::io::ErrorKind::InvalidData,
+            "Sequence and quality lengths differ",
+        ));
+    }
+
+    Ok((seq, qual))
+}
+
+
+fn correction_writer_2<U: AsRef<Path>>(
+    reads: &[HAECRecord],
+    output_path: U,
+    consensus_recv: Receiver<(usize, Vec<Vec<u8>>)>,
+    pbar_sender: Sender<PBarNotification>,
+) {
+    let file = File::create(output_path).unwrap();
+    let mut writer = BufWriter::new(file);
+
+    loop {
+        let (rid, seqs) = match consensus_recv.recv() {
+            Ok(out) => out,
+            Err(_) => break,
+        };
+    
+        if seqs.len() == 1 {
+            let (seq, qual) = split_seq_qual(&seqs[0]).unwrap();
+            write_sequence_fastq(seq, qual, None, &reads[rid], &mut writer).unwrap();
+        } else {
+            for (i, buf) in seqs.into_iter().enumerate() {
+                let (seq, qual) = split_seq_qual(&buf).unwrap();
+                write_sequence_fastq(seq, qual, Some(i), &reads[rid], &mut writer).unwrap();
+            }
+        }
+    
+        pbar_sender.send(PBarNotification::Inc).unwrap();
+    }
+}
+
+
+fn write_sequence_fastq<W: Write>(
+    seq: &[u8],
+    qual: &[u8],
+    idx: Option<usize>,
+    read: &HAECRecord,
+    writer: &mut W,
+) -> Result<(), Error> {
+    // Header
+    writer.write_all(b"@")?;
+    writer.write_all(&read.id)?;
+
+    match idx {
+        Some(idx) => write!(writer, ":{} ", idx)?,
+        None => writer.write_all(b" ")?,
+    };
+
+    if let Some(desc) = read.description.as_ref() {
+        writer.write_all(desc)?;
+    }
+    writer.write_all(b"\n")?;
+
+    // Sequence
+    writer.write_all(seq)?;
+    writer.write_all(b"\n+\n")?;
+
+    // Quality
+    writer.write_all(qual)?;
+    writer.write_all(b"\n")?;
+
+    Ok(())
+}
+

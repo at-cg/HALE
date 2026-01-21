@@ -10,6 +10,7 @@ use rand::Rng;
 use crate::{
     consensus::{ConsensusData, ConsensusWindow},
     features::SupportedPos,
+    hale_updated::hale_updated,
 };
 
 pub(crate) const BASES_MAP: [u8; 128] = [
@@ -69,7 +70,7 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
     let minmax = data
         .iter()
         .enumerate()
-        .filter_map(|(idx, win)| if win.n_alns > 1 { Some(idx) } else { None })
+        .filter_map(|(idx, win)| if win.bases.ncols() > 2 { Some(idx) } else { None })
         .minmax();
     let (wid_st, wid_en) = match minmax {
         NoElements => {
@@ -80,21 +81,23 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
     };
     
     for window in data[wid_st..wid_en].iter_mut() {
-        if window.n_alns < 5 || module == "consensus" {
+        if window.bases.ncols() < 7 || module == "consensus" {
             window.bases_logits = Some(Vec::new());
             window.info_logits = Some(Vec::new());
             continue;
         }
-        let n_rows = window.n_alns + 1;
+        let n_rows = window.bases.ncols();
 
         let bases = window.bases.slice(s![.., ..n_rows as usize]).to_owned();
         let informative_bases = filter_bases(&bases, &window.supported);
         let transposed = informative_bases.t().to_owned();
 
-
+        let mut partition: Vec<u8> = Vec::new();
         let correction = if module == "hale" {
             // naive_modified_mec(&transposed)
-            naive_modified_mec_weighted(&transposed)
+            // naive_modified_mec_weighted(&transposed)
+            hale_updated(&transposed, &mut partition)
+            // hale_updated(&transposed)
         } else if module == "pih" {
             // pih: passive informative handling
             let row0 = transposed.row(0);
@@ -106,6 +109,20 @@ fn mec_modified(data: &mut ConsensusData, module: &str) -> Option<Vec<u8>> {
         let corr2 = correction.clone();
         window.bases_logits = Some(correction);
         window.info_logits = Some(random_f32_vector(corr2.len()));
+
+        // println!("Read indices in top 6:\n {:?} : {:?}", window.rid, partition);
+        // if(partition.len() > 0) {
+        //     assert!(
+        //         partition.len() == bases.ncols(),
+        //         "partition length {} does not match bases rows {}",
+        //         partition.len(),
+        //         bases.ncols()
+        //     );
+        //     // println!("Read indices in top 6:\n {:?} : {:?}", window.rid, partition);
+        // }
+        
+        partition.clear();
+        
 
     }
 
@@ -490,7 +507,7 @@ fn get_target_indices<S: Data<Elem = u8>>(bases: &ArrayBase<S, Ix2>) -> Vec<usiz
 pub(crate) struct WindowExample {
     rid: u32,
     wid: u16,
-    n_alns: u8,
+    n_alns: u16,
     bases: Array2<u8>,
     quals: Array2<u8>,
     qids: Vec<u32>,
@@ -502,7 +519,7 @@ impl WindowExample {
     pub(crate) fn new(
         rid: u32,
         wid: u16,
-        n_alns: u8,
+        n_alns: u16,
         bases: Array2<u8>,
         quals: Array2<u8>,
         qids: Vec<u32>,

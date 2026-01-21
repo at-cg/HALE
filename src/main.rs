@@ -5,9 +5,12 @@ use hale::{error_correction, AlnMode};
 
 // high-performance memory allocator
 use jemallocator::Jemalloc;
+// use dhat::{Alloc, Profiler};
 
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
+// #[global_allocator]
+// static ALLOC: Alloc = Alloc;
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -63,6 +66,20 @@ struct CorrectArgs {
     n_threads: usize,
 
     #[arg(
+        short = 'd',
+        default_value = "30",
+        help = "depth/coverage of the dataset"
+    )]
+    coverage: usize,
+
+    #[arg(
+        short = 'p',
+        default_value = "2",
+        help = "ploidy of the genome"
+    )]
+    ploidy: usize,
+
+    #[arg(
         short = 'c',
         default_value = "",
         help = "Path to a cluster of reads."
@@ -84,6 +101,8 @@ struct CorrectArgs {
 }
 
 fn main() {
+    // let _profiler = Profiler::new_heap();
+
     let cli = Cli::parse();
 
     match cli.command {
@@ -102,6 +121,8 @@ fn main() {
                 args.window_size,
                 args.batch_size,
                 args.n_threads,
+                args.coverage,
+                args.ploidy,
                 mode,
                 &args.module,
             );
