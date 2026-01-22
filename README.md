@@ -80,7 +80,8 @@ Note:
   - Temporary alignment files are removed automatically upon successful completion.
 
 
-### Automatic pipeline selection
+## Implementation Notes:
+#### Automatic pipeline selection
 
 HALE automatically selects the appropriate correction pipeline based on the sequencing technology:
 
@@ -96,7 +97,7 @@ HALE automatically selects the appropriate correction pipeline based on the sequ
 No additional flags are required beyond `--tech`.
 
 
-### Dependencies (handled via conda)
+#### Dependencies (handled via conda)
 
 The conda environment installs:
 - minimap2
