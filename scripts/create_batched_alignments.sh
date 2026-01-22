@@ -40,7 +40,7 @@
 
 
 #!/bin/bash
-if [ "$#" -ne 4 ]; then
+if [ "$#" -ne 6 ]; then
 	echo "Please place batch.py in the same directory as this script."
 	echo "This script requires 4 arguments:"
 	echo "1. The path to the preprocessed reads."
@@ -62,21 +62,58 @@ reads=$1
 rids=$2
 num_threads=$3
 outdir=$4
+data_type=$5
+run_number=$6
+
 
 if [ ! -d $outdir ]; then
 	mkdir $outdir
 fi
 
 
-$minimap2 -K8g -cx ava-ont -k25 -w17 -e200 -r150 -m2500 -z200 -f 0.005 -t${num_threads} --dual=yes $reads $reads | $batch_script $rids - $outdir
 
-# ava-pb	PacBio CLR all-vs-all overlap mapping (-Hk19 -Xw5 -e0 -m100).
-# ava-ont	Oxford Nanopore all-vs-all overlap mapping (-k15 -Xw5 -e0 -m100 -r2k).
-
-
-
-
-
-
-
-
+if [[ "$data_type" == "hifi" ]]; then
+    if [[ "$run_number" -eq 1 ]]; then
+        minimap2 -K8g -cx ava-ont \
+            -k25 -w17 -e200 -r150 \
+            -m1000 -z200 -f 0.0007 \
+            -t "${num_threads}" \
+            --dual=yes \
+            "$reads" "$reads" \
+        | "$batch_script" "$rids" - "$outdir"
+    else
+        minimap2 -K8g -cx ava-ont \
+            -k25 -w17 -e200 -r150 \
+            -m1000 -z200 -f 0.002 \
+            -t "${num_threads}" \
+            --dual=yes \
+            "$reads" "$reads" \
+        | "$batch_script" "$rids" - "$outdir"
+    fi
+elif [[ "$data_type" == "ont_simplex" ]]; then
+    if [[ "$run_number" -eq 1 ]]; then
+        minimap2 -K8g -cx ava-ont \
+            -k25 -w17 -e200 -r250 \
+            -m1000 -z200 -f 0.0001 \
+            -t "${num_threads}" \
+            --dual=yes \
+            "$reads" "$reads" \
+        | "$batch_script" "$rids" - "$outdir"
+    elif [[ "$run_number" -eq 2 ]]; then
+        minimap2 -K8g -cx ava-ont \
+            -k25 -w17 -e200 -r250 \
+            -m1000 -z200 -f 0.001 \
+            -t "${num_threads}" \
+            --dual=yes \
+            "$reads" "$reads" \
+        | "$batch_script" "$rids" - "$outdir"
+    else
+        minimap2 -K8g -cx ava-ont \
+            -k25 -w17 -e200 -r250 \
+            -m1000 -z200 -f 0.0015 \
+            -t "${num_threads}" \
+            --dual=yes \
+            "$reads" "$reads" \
+        | "$batch_script" "$rids" - "$outdir"
+    fi
+fi

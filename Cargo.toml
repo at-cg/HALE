@@ -1,12 +1,13 @@
 [package]
 name = "hale"
-version = "0.1.0"
+version = "2.0.0"
 authors = ["Parvesh Barak"]
 edition = "2021"
-description = "HALE is a haplotype-aware long read error correction tool which works best on HiFi reads and can be used to improve ONT Simplex (both long and ultralong reads)"
+description = "HALE is a haplotype-aware long read error correction tool which works on both PacBio HiFi and ONT Simplex reads"
 readme = "README.md"
-repository = "https://github.com/parveshbarak/HALE"
+repository = "https://github.com/at-cg/HALE"
 keywords = ["error-correction", "haplotype-aware", "bioinformatics"]
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -38,3 +39,7 @@ rayon = "1.8"
 [dev-dependencies]
 approx = "~0.5.1"
 ndarray = { version = "~0.15.6", features = ["approx-0_5"] }
+
+[[bin]]
+name = "HALE"
+path = "src/main.rs"

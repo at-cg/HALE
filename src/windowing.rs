@@ -42,11 +42,70 @@ impl<'a> OverlapWindow<'a> {
 type Windows<'a> = Vec<Vec<OverlapWindow<'a>>>;
 
 
+pub(crate) fn extract_windows<'a>(
+    windows: &mut Windows<'a>,
+    overlap: &'a Overlap,
+    cigar: &[u8],
+    is_target: bool,
+) {
+
+    if (is_target && (overlap.tend - overlap.tstart) < 4000)
+        || ((overlap.qend - overlap.qstart) < 4000)
+    {
+        return;
+    }
+
+    let mut tpos;
+    let mut qpos = 0;
+    let mut tstart = 0;
+    let mut tend = 0;
+    let mut qstart = 0;
+    let mut qend = 0;
+    let mut tid;
+
+    if is_target {
+        tpos = overlap.tstart;
+        tstart = overlap.tstart;
+        tend = overlap.tend;
+        tid = overlap.tid;
+        qstart = overlap.qstart;
+        qend = overlap.qend;
+    } else {
+        tpos = overlap.qstart;
+        tstart = overlap.qstart;
+        tend = overlap.qend;
+        qstart = overlap.tstart;
+        qend = overlap.tend;
+        tid = overlap.qid;
+    }
+
+
+    let cigar_start_idx = 0;
+    let cigar_start_offset = 0;
+
+
+    windows[0].push(OverlapWindow::new(
+        overlap,
+        tpos,
+        qstart,
+        qend,
+        cigar_start_idx,
+        cigar_start_offset,
+        cigar.len(),
+        0,
+    ));
+
+}
+
+
+
+
+
 // this needs attention!!!
 // Maybe we need not to discard everything that is not covering the whole window
 // N character or a 10 at those sites can help ig!
 
-pub(crate) fn extract_windows<'a>(
+pub(crate) fn extract_windows_p<'a>(
     windows: &mut Windows<'a>,
     overlap: &'a Overlap,
     cigar: &[u8],

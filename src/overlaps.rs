@@ -340,6 +340,8 @@ pub(crate) fn alignment_reader<T: AsRef<Path>, U: AsRef<Path>>(
         .map(|(i, e)| (&*e.id, i as u32))
         .collect();
 
+    // println!("{:?}",name_to_id);
+
     let batches: Box<dyn Iterator<Item = HashMap<u32, Vec<Alignment>>>> = match aln_mode {
         AlnMode::None => {
             let batches = generate_batches(&reads, &name_to_id, &reads_path, n_threads, None::<T>);
