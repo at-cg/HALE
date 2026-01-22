@@ -38,7 +38,7 @@ mkdir -p test_run && cd test_run/
 wget -O HG002.chr19_10M_12M.fastq.gz https://zenodo.org/records/14048797/files/HG002.chr19_10M_12M.fastq.gz?download=1
 
 # Run hale correction
-../target/release/hale correct --reads HG002.chr19_10M_12M.fastq.gz -tthreads 8 --depth 40 --ploidy 2 --tech ont
+../target/release/hale correct --reads HG002.chr19_10M_12M.fastq.gz -threads 8 --depth 40 --ploidy 2 --tech ont
 
 ```
 For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 44 minutes for all-vs-all overlap and 12 minutes for correction consuming ~50 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
@@ -70,14 +70,39 @@ conda activate hale
 
 
 ```shell
-$hale_dir/target/release/hale correct --reads <input_fastq/input_fastq.gz> -threads <num_of_threads> --depth <dataset_depth> --ploidy <genome_ploidy> --tech <hifi/ont>
+$hale_dir/target/release/hale correct --reads <input_fastq/input_fastq.gz> --threads <num_of_threads> --depth <dataset_depth> --ploidy <genome_ploidy> --tech <hifi/ont>
 ```
+**Output file :** ```hale_corrected_<input_fastq/input_fastq.gz>``` will be created in the same directory.
 
 Note: 
   - `$hale_dir` is the path to HALE directory
-  - Flag ```--depth``` represent dataset dept, (default 60x), ```--ploidy``` represent ploidy of genome, (default 2), 
+  - Flag ```--depth``` represent dataset dept, (default 60x), ```--ploidy``` represent ploidy of genome, (default 2)
+  - Temporary alignment files are removed automatically upon successful completion.
 
 
+### Automatic pipeline selection
+
+HALE automatically selects the appropriate correction pipeline based on the sequencing technology:
+
+- **PacBio HiFi**
+  - Single round of all-vs-all overlap
+  - One HALE correction step
+
+- **ONT Simplex**
+  - Three rounds of all-vs-all overlap
+  - Two pre-correction rounds (`pih` mode)
+  - One final correction round (`hale` mode)
+
+No additional flags are required beyond `--tech`.
+
+
+### Dependencies (handled via conda)
+
+The conda environment installs:
+- minimap2
+- seqkit
+- samtools
+- Python dependencies for preprocessing
 
 
 ##  <a name="ack"></a>Acknowledgement

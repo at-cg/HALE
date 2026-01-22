@@ -1,26 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -------------------------
+########################################
 # First argument: path to HALE binary
-# -------------------------
+########################################
 HALE_BIN="$1"
 shift
 
-# -------------------------
-# Parse user options
-# -------------------------
+########################################
+# Defaults
+########################################
 THREADS=48
 SEQ_TECH=""
 READS_FASTQ=""
 DEPTH=""
 PLOIDY=""
 
+########################################
+# Usage
+########################################
 usage() {
-    echo "Usage: $0 <hale_binary> --reads <file> --threads <int> --depth <int> --ploidy <int> --tech <ont|ont_simplex|simplex|hifi|pacbio>"
+    cat << EOF
+Usage:
+  hale correct \\
+      --reads <file.fastq|file.fastq.gz> \\
+      --threads <int> \\
+      --depth <int> \\
+      --ploidy <int> \\
+      --tech <ont|ont_simplex|simplex|hifi|pacbio>
+EOF
     exit 1
 }
 
+########################################
+# Parse arguments
+########################################
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --reads)   READS_FASTQ="$2"; shift 2 ;;
@@ -33,18 +47,26 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# -------------------------
+########################################
 # Validate inputs
-# -------------------------
+########################################
 : "${READS_FASTQ:?Missing --reads}"
 : "${THREADS:?Missing --threads}"
 : "${DEPTH:?Missing --depth}"
 : "${PLOIDY:?Missing --ploidy}"
 : "${SEQ_TECH:?Missing --tech}"
 
-# -------------------------
+########################################
+# Detect gzip input
+########################################
+IS_GZIPPED=0
+if [[ "${READS_FASTQ}" == *.gz ]]; then
+    IS_GZIPPED=1
+fi
+
+########################################
 # Normalize technology
-# -------------------------
+########################################
 TECH_LOWER="$(echo "${SEQ_TECH}" | tr '[:upper:]' '[:lower:]')"
 case "${TECH_LOWER}" in
     ont|ont_simplex|simplex)
@@ -61,56 +83,56 @@ case "${TECH_LOWER}" in
         ;;
 esac
 
-# -------------------------
+########################################
 # Resolve paths
-# -------------------------
+########################################
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ALIGN_SCRIPT="${SCRIPT_DIR}/create_batched_alignments.sh"
 
 if [[ ! -x "${HALE_BIN}" ]]; then
-    echo "Error: HALE binary not found at ${HALE_BIN}"
+    echo "Error: HALE binary not executable: ${HALE_BIN}"
     exit 1
 fi
 
 if [[ ! -x "${ALIGN_SCRIPT}" ]]; then
-    echo "Error: create_batched_alignments.sh not found or not executable at ${ALIGN_SCRIPT}"
+    echo "Error: create_batched_alignments.sh not found or not executable"
     exit 1
 fi
 
-# -------------------------
+########################################
 # Input name handling
-# -------------------------
+########################################
 READS_BASENAME="$(basename "${READS_FASTQ}")"
-INPUT_NAME="${READS_BASENAME%.fastq}"
-INPUT_NAME="${INPUT_NAME%.fq}"
+
+INPUT_NAME="${READS_BASENAME}"
 INPUT_NAME="${INPUT_NAME%.fastq.gz}"
 INPUT_NAME="${INPUT_NAME%.fq.gz}"
+INPUT_NAME="${INPUT_NAME%.fastq}"
+INPUT_NAME="${INPUT_NAME%.fq}"
 
-# -------------------------
-# Logging function
-# -------------------------
+########################################
+# Logging
+########################################
 log() {
     echo "[HALE $(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
-log "Input reads : ${READS_FASTQ}"
-log "Input name  : ${INPUT_NAME}"
+log "Reads       : ${READS_FASTQ}"
 log "Threads     : ${THREADS}"
 log "Depth       : ${DEPTH}"
 log "Ploidy      : ${PLOIDY}"
 log "Technology  : ${MODE}"
 
-# -------------------------
+########################################
 # HiFi pipeline
-# -------------------------
+########################################
 if [[ "${MODE}" == "hifi" ]]; then
     log "Running HiFi correction pipeline"
 
     seqkit seq -ni "${READS_FASTQ}" > "${INPUT_NAME}.rids"
 
-    log "Starting minimap2 all-vs-all overlap"
-    /usr/bin/time "$ALIGN_SCRIPT" \
+    log "Minimap2 all-vs-all overlaps"
+/usr/bin/time "$ALIGN_SCRIPT" \
         "${READS_FASTQ}" \
         "${INPUT_NAME}.rids" \
         "${THREADS}" \
@@ -118,32 +140,42 @@ if [[ "${MODE}" == "hifi" ]]; then
         "${ALIGN_TECH}" \
         1
 
+    HALE_OUT="hale_corrected_${READS_BASENAME%.gz}"
+
     log "Running HALE correction"
-    /usr/bin/time "$HALE_BIN" correct \
+/usr/bin/time "$HALE_BIN" correct \
         --read-alns "hifi_batch_alignments_1_${INPUT_NAME}" \
         -m hale \
         -t "${THREADS}" \
         -d "${DEPTH}" \
         -p "${PLOIDY}" \
         "${READS_FASTQ}" \
-        "hale_corrected_${READS_BASENAME}"
+        "${HALE_OUT}"
 
-    log "Cleaning up temporary files"
+    if [[ "${IS_GZIPPED}" -eq 1 ]]; then
+        log "Compressing output FASTQ"
+        gzip -f "${HALE_OUT}"
+        HALE_OUT="${HALE_OUT}.gz"
+    fi
+
     rm -r "hifi_batch_alignments_1_${INPUT_NAME}" "${INPUT_NAME}.rids"
 
     log "HiFi correction completed"
-    log "Final output: hale_corrected_${READS_BASENAME}"
+    log "Final output: ${HALE_OUT}"
     exit 0
 fi
 
-# -------------------------
+########################################
 # ONT pipeline
-# -------------------------
-log "Running ONT correction pipeline: minimap2 -> HALE pre-correction -> minimap2 -> HALE pre-correction -> minimap2 -> HALE final correction"
+########################################
+log "Running ONT correction pipeline (3 rounds)"
 
+########################################
 # Round 1
+########################################
 seqkit seq -ni "${READS_FASTQ}" > "${INPUT_NAME}.rids"
-log "Starting minimap2 all-vs-all overlap round 1"
+
+log "Minimap2 overlap round 1"
 /usr/bin/time "$ALIGN_SCRIPT" \
     "${READS_FASTQ}" \
     "${INPUT_NAME}.rids" \
@@ -152,7 +184,9 @@ log "Starting minimap2 all-vs-all overlap round 1"
     "${ALIGN_TECH}" \
     1
 
-log "Running HALE pre-correction round 1"
+PIH1_OUT="pih_corrected_${READS_BASENAME%.gz}"
+
+log "HALE pre-correction round 1"
 /usr/bin/time "$HALE_BIN" correct \
     --read-alns "ont_batch_alignments_1_${INPUT_NAME}" \
     -m pih \
@@ -160,56 +194,76 @@ log "Running HALE pre-correction round 1"
     -d "${DEPTH}" \
     -p "${PLOIDY}" \
     "${READS_FASTQ}" \
-    "pih_corrected_${READS_BASENAME}"
+    "${PIH1_OUT}"
 
+########################################
 # Round 2
-seqkit seq -ni "pih_corrected_${READS_BASENAME}" > "pih_corrected_${INPUT_NAME}.rids"
-log "Starting minimap2 all-vs-all overlap round 2"
+########################################
+seqkit seq -ni "${PIH1_OUT}" > "pih_corrected_${INPUT_NAME}.rids"
+
+log "Minimap2 overlap round 2"
 /usr/bin/time "$ALIGN_SCRIPT" \
-    "pih_corrected_${READS_BASENAME}" \
+    "${PIH1_OUT}" \
     "pih_corrected_${INPUT_NAME}.rids" \
     "${THREADS}" \
     "ont_batch_alignments_2_${INPUT_NAME}" \
     "${ALIGN_TECH}" \
     2
 
-log "Running HALE pre-correction round 2"
+PIH2_OUT="pih_corrected_2_${READS_BASENAME%.gz}"
+
+log "HALE pre-correction round 2"
 /usr/bin/time "$HALE_BIN" correct \
     --read-alns "ont_batch_alignments_2_${INPUT_NAME}" \
     -m pih \
     -t "${THREADS}" \
     -d "${DEPTH}" \
     -p "${PLOIDY}" \
-    "pih_corrected_${READS_BASENAME}" \
-    "pih_corrected_2_${READS_BASENAME}"
+    "${PIH1_OUT}" \
+    "${PIH2_OUT}"
 
+########################################
 # Round 3
-seqkit seq -ni "pih_corrected_2_${READS_BASENAME}" > "pih_corrected_2_${INPUT_NAME}.rids"
-log "Starting minimap2 all-vs-all overlap round 3"
+########################################
+seqkit seq -ni "${PIH2_OUT}" > "pih_corrected_2_${INPUT_NAME}.rids"
+
+log "Minimap2 overlap round 3"
 /usr/bin/time "$ALIGN_SCRIPT" \
-    "pih_corrected_2_${READS_BASENAME}" \
+    "${PIH2_OUT}" \
     "pih_corrected_2_${INPUT_NAME}.rids" \
     "${THREADS}" \
     "ont_batch_alignments_3_${INPUT_NAME}" \
     "${ALIGN_TECH}" \
     3
 
-log "Running HALE final correction round 3"
+HALE_OUT="hale_corrected_${READS_BASENAME%.gz}"
+
+log "HALE final correction"
 /usr/bin/time "$HALE_BIN" correct \
     --read-alns "ont_batch_alignments_3_${INPUT_NAME}" \
     -m hale \
     -t "${THREADS}" \
     -d "${DEPTH}" \
     -p "${PLOIDY}" \
-    "pih_corrected_2_${READS_BASENAME}" \
-    "hale_corrected_${READS_BASENAME}"
+    "${PIH2_OUT}" \
+    "${HALE_OUT}"
 
+########################################
+# Compress output if needed
+########################################
+if [[ "${IS_GZIPPED}" -eq 1 ]]; then
+    log "Compressing final output FASTQ"
+    gzip -f "${HALE_OUT}"
+    HALE_OUT="${HALE_OUT}.gz"
+fi
+
+########################################
 # Cleanup
-log "Deleting temporary files"
+########################################
 rm \
-    "pih_corrected_${READS_BASENAME}" \
+    "${PIH1_OUT}" \
+    "${PIH2_OUT}" \
     "pih_corrected_${INPUT_NAME}.rids" \
-    "pih_corrected_2_${READS_BASENAME}" \
     "pih_corrected_2_${INPUT_NAME}.rids"
 
 rm -r \
@@ -218,4 +272,4 @@ rm -r \
     "ont_batch_alignments_3_${INPUT_NAME}"
 
 log "ONT correction completed"
-log "Final output: hale_corrected_${READS_BASENAME}"
+log "Final output: ${HALE_OUT}"
