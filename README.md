@@ -21,7 +21,7 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
 
 
 ## <a name="started"></a>Try HALE on Small Test Data
-The entire test workflow below will take about 5-6 minutes. Users can either run the commands one by one or copy the commands into an executable script.
+The entire test workflow below will take about 6-8 minutes. Users can either run the commands one by one or copy the commands into an executable script.
 
 ```sh
 # Install HALE 
@@ -38,10 +38,10 @@ mkdir -p test_run && cd test_run/
 wget -O HG002.chr19_10M_12M.fastq.gz https://zenodo.org/records/14048797/files/HG002.chr19_10M_12M.fastq.gz?download=1
 
 # Run hale correction
-../target/release/hale correct --reads HG002.chr19_10M_12M.fastq.gz --threads 8 --depth 40 --ploidy 2 --tech ont
+../target/release/hale correct --reads HG002.chr19_10M_12M.fastq.gz --threads 16 --depth 40 --ploidy 2 --tech ont
 
 ```
-For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 44 minutes for all-vs-all overlap and 12 minutes for correction consuming ~50 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
+For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 44 minutes for all-vs-all overlap and 12 minutes for correction consuming ~90 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
 
 
 

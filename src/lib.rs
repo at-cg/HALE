@@ -71,17 +71,17 @@ pub fn error_correction<T, U, V>(
 
 
     let num_threads = n_threads;
-    let mut n_correct = std::cmp::min(2, n_threads / 2);
-    let mut n_extract = std::cmp::max(1, n_threads - n_correct);
+    let mut n_correct = 1;
+    let mut n_extract = std::cmp::max(1, n_threads-1);
     if(module=="hale") {
-        n_correct = std::cmp::max(1, n_threads / 2);
-        n_extract = n_threads.saturating_sub(n_correct);
+        n_correct = std::cmp::max(1, n_threads);
+        n_extract = std::cmp::max(1, n_threads);
     }
     // let num_threads = n_threads/2;
     // let n_correct = std::cmp::max(1, n_threads / 2);
     // let n_extract = n_threads.saturating_sub(n_correct);
-    
-    let num_consensus_threads = std::cmp::min(4,num_threads/16); 
+
+    let num_consensus_threads = std::cmp::max(4,n_threads/16);
 
     let (core, neighbour) = read_cluster(&cluster_path);
     let mut reads = parse_reads(&reads_path, window_size, &core, &neighbour);
