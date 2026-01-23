@@ -23,7 +23,7 @@ usage() {
     cat << EOF
 Usage:
   hale correct \\
-      --reads <file.fastq|file.fastq.gz> \\
+      --reads <file.fa|file.fa.gz|file.fq|file.fq.gz> \\
       --threads <int> \\
       --depth <int> \\
       --ploidy <int> \\
@@ -57,8 +57,53 @@ done
 : "${SEQ_TECH:?Missing --tech}"
 
 ########################################
+# Logging
+########################################
+log() {
+    echo "[HALE $(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+########################################
+# FASTA to FASTQ Conversion
+########################################
+WAS_CONVERTED=0
+# Check if input is FASTA (case insensitive matching)
+if [[ "${READS_FASTQ,,}" =~ \.(fa|fasta)(\.gz)?$ ]]; then
+    # log "Input detected as FASTA. Converting to FASTQ with dummy quality 'I'..."
+    
+    # Generate temporary filename
+    BASE_TMP=$(basename "${READS_FASTQ}")
+    # Remove extensions to get clean base
+    CLEAN_BASE="${BASE_TMP%.*}"
+    CLEAN_BASE="${CLEAN_BASE%.*}" 
+    CONVERTED_READS="${CLEAN_BASE}_converted.fastq"
+    
+    # 1. seqkit seq -w 0: Linearizes fasta (unwraps multiline sequences)
+    # 2. awk: Converts header '>' to '@', prints sequence, prints '+', 
+    #         prints 'I' string of matching length
+    seqkit seq -w 0 "${READS_FASTQ}" | \
+    awk '{
+        if(NR%2==1){ 
+            print "@"substr($0,2) 
+        } else { 
+            print $0; 
+            print "+"; 
+            gsub(/./, "I"); 
+            print 
+        }
+    }' > "${CONVERTED_READS}"
+
+    # Update READS_FASTQ to point to the new converted file
+    READS_FASTQ="${CONVERTED_READS}"
+    WAS_CONVERTED=1
+    
+    log "Conversion complete: Using ${READS_FASTQ} for processing"
+fi
+
+########################################
 # Detect gzip input
 ########################################
+# Reset detection based on the potentially new READS_FASTQ
 IS_GZIPPED=0
 if [[ "${READS_FASTQ}" == *.gz ]]; then
     IS_GZIPPED=1
@@ -110,13 +155,6 @@ INPUT_NAME="${INPUT_NAME%.fq.gz}"
 INPUT_NAME="${INPUT_NAME%.fastq}"
 INPUT_NAME="${INPUT_NAME%.fq}"
 
-########################################
-# Logging
-########################################
-log() {
-    echo "[HALE $(date '+%Y-%m-%d %H:%M:%S')] $*"
-}
-
 log "Reads       : ${READS_FASTQ}"
 log "Threads     : ${THREADS}"
 log "Depth       : ${DEPTH}"
@@ -159,6 +197,12 @@ if [[ "${MODE}" == "hifi" ]]; then
     fi
 
     rm -r "hifi_batch_alignments_1_${INPUT_NAME}" "${INPUT_NAME}.rids"
+
+    # Cleanup converted fastq if it was generated
+    if [[ "${WAS_CONVERTED}" -eq 1 ]]; then
+        log "Cleaning up converted temporary FASTQ"
+        rm "${READS_FASTQ}"
+    fi
 
     log "HiFi correction completed"
     log "Final output: ${HALE_OUT}"
@@ -270,6 +314,12 @@ rm -r \
     "ont_batch_alignments_1_${INPUT_NAME}" \
     "ont_batch_alignments_2_${INPUT_NAME}" \
     "ont_batch_alignments_3_${INPUT_NAME}"
+
+# Cleanup converted fastq if it was generated
+if [[ "${WAS_CONVERTED}" -eq 1 ]]; then
+    log "Cleaning up converted temporary FASTQ"
+    rm "${READS_FASTQ}"
+fi
 
 log "ONT correction completed"
 log "Final output: ${HALE_OUT}"

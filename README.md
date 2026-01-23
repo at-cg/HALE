@@ -21,7 +21,7 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
 
 
 ## <a name="started"></a>Try HALE on Small Test Data
-The entire test workflow below will take about 6-8 minutes. Users can either run the commands one by one or copy the commands into an executable script.
+The entire test workflow below will take about 5-6 minutes. Users can either run the commands one by one or copy the commands into an executable script.
 
 ```sh
 # Install HALE 
@@ -35,14 +35,24 @@ conda activate hale
 mkdir -p test_run && cd test_run/
 
 # download small test dataset
-wget -O HG002.chr19_10M_12M.fastq.gz https://zenodo.org/records/14048797/files/HG002.chr19_10M_12M.fastq.gz?download=1
+wget https://github.com/chhylp123/hifiasm/releases/download/v0.7/chr11-2M.fa.gz
 
 # Run hale correction
-../target/release/hale correct --reads HG002.chr19_10M_12M.fastq.gz --threads 16 --depth 40 --ploidy 2 --tech ont
+../target/release/hale correct --reads chr11-2M.fa.gz --threads 8 --depth 40 --ploidy 2 --tech hifi
 
 ```
-For large inputs, users are recommended to increase the thread count depending on the number of the cores available for use. HALE takes about 44 minutes for all-vs-all overlap and 12 minutes for correction consuming ~90 GB RAM using 64 threads on a multicore [Perlmutter CPU-based node](https://docs.nersc.gov/systems/perlmutter/architecture/) to process 60x HiFi chr9 HG002 human genome dataset.
 
+### <a name="visulize"></a>Visualize Corrections
+
+**To visulize** the reduction in errors after HALE correction:
+  - One can align both the raw and corrected reads to a high-quality reference genome (in this case, [HG002 v1.1](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.fasta.gz)).
+  - Visulize the bam files in [IGV](https://igv.org).
+
+For they above test dataset, the following IGV snapshot captures a 125kb genomic region, comparing the alignment of the raw reads against the HALE-corrected reads.
+<p align="left"> <img src="scripts/igv_snapshot.png" alt="IGV comparison of raw vs corrected reads" width="800">
+
+
+<em>Figure 1: IGV view showing the reduction in errros (colored bars) after HALE correction.</em> </p>
 
 
 
@@ -70,9 +80,9 @@ conda activate hale
 
 
 ```shell
-$hale_dir/target/release/hale correct --reads <input_fastq/input_fastq.gz> --threads <num_of_threads> --depth <dataset_depth> --ploidy <genome_ploidy> --tech <hifi/ont>
+$hale_dir/target/release/hale correct --reads <input_fastq/fastq.gz/fasta/fasta.gz> --threads <num_of_threads> --depth <dataset_depth> --ploidy <genome_ploidy> --tech <hifi/ont>
 ```
-**Output file :** ```hale_corrected_<input_fastq/input_fastq.gz>``` will be created in the same directory.
+**Output file :** ```hale_corrected_<input_fastq/input_fastq.gz/>``` will be created in the same directory.
 
 Note: 
   - `$hale_dir` is the path to HALE directory
