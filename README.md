@@ -6,7 +6,7 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
 ## <a name="requirements"></a> Requirements
 - Linux OS (tested on RHEL 8 and Ubuntu 22.04)
 - [rustup](https://rustup.rs/) (Install using [rustup](https://rustup.rs/), the recommended way to get Rust)
-- Python 3.1 or above (and conda) for data preprocessing
+- Python 3.1 or above and [conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/linux.html) for data preprocessing
 
   <!-- ### <a name="sys-requirements"></a> System Requirements -->
 - Make sure the following system packages are installed (Linux):
@@ -14,8 +14,8 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
   - autoconf 
   - libtool 
   - pkg-config -->
-  - build-essential, autoconf, libtool, pkg-config
-  <!-- - To install these on Ubuntu/Debian: ``sudo apt-get install build-essential autoconf libtool pkg-config`` -->
+  - build-essential, autoconf, libtool, pkg-config, time
+      - To install these on Ubuntu/Debian: ``apt-get install build-essential autoconf libtool pkg-config time``
 
   Note: If you're using a Linux system, there's a good chance these system packages are already installed, especially if development tools have been previously set up.
 
@@ -27,7 +27,7 @@ The entire test workflow below will take about 5-6 minutes. Users can either run
 ```sh
 # Install HALE 
 git clone https://github.com/at-cg/HALE.git
-cd HALE && RUSTFLAGS="-Ctarget-cpu=native" cargo build -q --release
+cd HALE && cargo build -q --release
 
 # Create conda env
 conda env create --file scripts/hale-env.yml
@@ -67,7 +67,7 @@ git clone https://github.com/at-cg/HALE.git
 2. Compile the source code:
 ```sh
 cd HALE
-RUSTFLAGS="-Ctarget-cpu=native" cargo build -q --release
+cargo build -q --release
 ```
 
 3. Create conda env
