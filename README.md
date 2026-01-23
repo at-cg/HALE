@@ -15,6 +15,7 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
   - libtool 
   - pkg-config -->
   - build-essential, autoconf, libtool, pkg-config
+  <!-- - To install these on Ubuntu/Debian: ``sudo apt-get install build-essential autoconf libtool pkg-config`` -->
 
   Note: If you're using a Linux system, there's a good chance these system packages are already installed, especially if development tools have been previously set up.
 
@@ -48,7 +49,7 @@ wget https://github.com/chhylp123/hifiasm/releases/download/v0.7/chr11-2M.fa.gz
   - One can align both the raw and corrected reads to a high-quality reference genome (in this case, [HG002 v1.1](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.fasta.gz)).
   - Visulize the bam files in [IGV](https://igv.org).
 
-For they above test dataset, the following IGV snapshot captures a 125kb genomic region, comparing the alignment of the raw reads against the HALE-corrected reads.
+**Exampple result:** For the above test dataset, we corrected using HALE and the following IGV snapshot captures a 125kb genomic region, shwoing the alignment of the raw and HALE-corrected reads to the HG002 assembly.
 <p align="left"> <img src="scripts/igv_snapshot.png" alt="IGV comparison of raw vs corrected reads" width="800">
 
 
@@ -119,10 +120,4 @@ The conda environment installs:
 ##  <a name="ack"></a>Acknowledgement
 
 This work leverages components of [HERRO](https://github.com/lbcb-sci/herro), developed by Stanojevic et al. (2024). While we designed a new algorithm independent of HERRO's deep learning approach, we adopted key preprocessing steps such as Minimap2 alignment, and post-processing for consensus generation with a few modifications. 
-
-
-
-
-
-
 
