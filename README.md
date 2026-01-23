@@ -43,17 +43,17 @@ wget https://github.com/chhylp123/hifiasm/releases/download/v0.7/chr11-2M.fa.gz
 
 ```
 
-### <a name="visulize"></a>Visualize Corrections
+### <a name="visualize"></a>Visualize Corrections
 
-**To visulize** the reduction in errors after HALE correction:
-  - One can align both the raw and corrected reads to a high-quality reference genome (in this case, [HG002 v1.1](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.fasta.gz)).
-  - Visulize the bam files in [IGV](https://igv.org).
+**To visualize** the reduction in errors after HALE correction:
+  - Align both the raw and corrected reads to a high-quality reference genome (in this case, [HG002 v1.1](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/HG002/assemblies/hg002v1.1.fasta.gz)).
+  - Visualize the BAM files in [IGV](https://igv.org).
 
-**Exampple result:** For the above test dataset, we corrected using HALE and the following IGV snapshot captures a 125kb genomic region, shwoing the alignment of the raw and HALE-corrected reads to the HG002 assembly.
+**Example result:** For the above test dataset, we corrected using HALE and the following IGV snapshot captures a 125kb genomic region, showing the alignment of the raw and HALE-corrected reads to the HG002 assembly.
 <p align="left"> <img src="scripts/igv_snapshot.png" alt="IGV comparison of raw vs corrected reads" width="800">
 
 
-<em>Figure 1: IGV view showing the reduction in errros (colored bars) after HALE correction.</em> </p>
+<em>Figure 1: IGV view showing the reduction in erros (colored bars) after HALE correction.</em> </p>
 
 
 
@@ -83,11 +83,11 @@ conda activate hale
 ```shell
 $hale_dir/target/release/hale correct --reads <input_fastq/fastq.gz/fasta/fasta.gz> --threads <num_of_threads> --depth <dataset_depth> --ploidy <genome_ploidy> --tech <hifi/ont>
 ```
-**Output file :** ```hale_corrected_<input_fastq/input_fastq.gz/>``` will be created in the same directory.
+**Output file :** ```hale_corrected_<input_fastq/input_fastq.gz>``` will be created in the same directory.
 
 Note: 
   - `$hale_dir` is the path to HALE directory
-  - Flag ```--depth``` represent dataset dept, (default 60x), ```--ploidy``` represent ploidy of genome, (default 2)
+  - Flag ```--depth``` represent dataset depth, (default 60x), ```--ploidy``` represent ploidy of genome, (default 2)
   - Temporary alignment files are removed automatically upon successful completion.
 
 
