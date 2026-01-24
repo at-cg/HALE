@@ -6,7 +6,7 @@ set -euo pipefail
 ########################################
 WRAPPER_PATH="$(readlink -f "$0")"            # absolute path to wrapper
 BIN_DIR="$(dirname "$WRAPPER_PATH")"          # directory containing wrapper
-HALE_REAL="${BIN_DIR}/HALE"                   # binary next to wrapper
+HALE_REAL="${BIN_DIR}/error_correction_module"                   # binary next to wrapper
 PIPELINE_SCRIPT="${BIN_DIR}/scripts/hale_correct_pipeline.sh"
 
 ########################################

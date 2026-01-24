@@ -4,7 +4,7 @@ HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype
 
 
 ## <a name="requirements"></a> Dependencies
-- Linux OS (tested on Ubuntu 22.04)
+- Linux OS (tested on Cent OS 8 and Ubuntu 22.04)
 - [rustup](https://rustup.rs/) (See installation instructions [here](https://rustup.rs/))
 - Python 3.1 or above and [conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/linux.html) for data preprocessing
 

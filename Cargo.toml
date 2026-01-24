@@ -41,5 +41,5 @@ approx = "~0.5.1"
 ndarray = { version = "~0.15.6", features = ["approx-0_5"] }
 
 [[bin]]
-name = "HALE"
+name = "error_correction_module"
 path = "src/main.rs"
