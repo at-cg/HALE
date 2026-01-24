@@ -43,6 +43,7 @@ wget https://github.com/chhylp123/hifiasm/releases/download/v0.7/chr11-2M.fa.gz
 ../target/release/hale correct --reads chr11-2M.fa.gz --threads 8 --depth 40 --ploidy 2 --tech hifi
 
 ```
+Note: If you encounter compilation issues, try disabling Conda before running `cargo build --release`
 
 ### <a name="visualize"></a>Visualize Corrections
 
