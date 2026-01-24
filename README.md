@@ -1,6 +1,6 @@
 ## <a name="intro"></a>Introduction
 
-HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype-aware error correction tool designed for long reads. It supports correction of both ONT Simplex and PacBio HiFi data. The algorithm implemented in HALE builds on the Minimum Error Correction (MEC) optimization framework, commonly used in read phasing tools such as [WhatsHap](https://github.com/whatshap/whatshap). 
+HALE (**H**aplotype-**A**ware **L**ong-read **E**rror correction) is a haplotype-aware error correction tool designed for long reads. It supports correction of both ONT Simplex and PacBio HiFi reads. The algorithm implemented in HALE builds on the Minimum Error Correction (MEC) optimization framework, commonly used in read phasing tools such as [WhatsHap](https://github.com/whatshap/whatshap). 
 
 
 ## <a name="requirements"></a> Dependencies
