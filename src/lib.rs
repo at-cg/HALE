@@ -109,7 +109,7 @@ pub fn error_correction<T, U, V>(
         s.spawn(|| correction_writer_2(&reads, output_path, writer_receiver, pbar_sender));
 
         let (infer_sender, infer_recv) = bounded(INFER_CHANNEL_CAP_FACTOR * num_threads);
-        let (cons_sender, cons_recv) = unbounded();
+        let (cons_sender, cons_recv) = bounded(4*INFER_CHANNEL_CAP_FACTOR * num_threads);
 
         for _ in 0..n_extract {
             let alns_r = alns_receiver.clone();
